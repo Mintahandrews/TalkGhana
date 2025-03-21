@@ -1,0 +1,40 @@
+{
+  "language": "ga",
+  "options": {
+    "modelType": "fastspeech",
+    "batchSize": 32,
+    "epochs": 100,
+    "learningRate": 0.001,
+    "useTones": true,
+    "syllableLevel": true
+  },
+  "history": {
+    "loss": [
+      5,
+      4.5,
+      4,
+      3.5,
+      3,
+      2.5,
+      2,
+      1.8,
+      1.6,
+      1.5
+    ],
+    "val_loss": [
+      5.5,
+      5,
+      4.5,
+      4,
+      3.5,
+      3.2,
+      2.9,
+      2.7,
+      2.5,
+      2.4
+    ]
+  },
+  "timestamp": "2025-03-16T19:15:43.835Z",
+  "trainingDuration": 3600,
+  "vocabSize": 100
+}

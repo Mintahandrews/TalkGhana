@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* High contrast mode styles */
+.high-contrast {
+  --bg-color: #000000;
+  --text-color: #ffffff;
+  --link-color: #4da6ff;
+  --border-color: #666666;
+}
+
+.high-contrast body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.high-contrast button:not([disabled]) {
+  border: 1px solid var(--border-color);
+}
+
+.high-contrast a {
+  color: var(--link-color);
+}
+
+/* Large text mode styles */
+.large-text {
+  font-size: 1.2rem;
+}
+
+.large-text h1 {
+  font-size: 2.5rem;
+}
+
+.large-text h2 {
+  font-size: 2rem;
+}
+
+.large-text h3 {
+  font-size: 1.75rem;
+}
+
+.large-text button,
+.large-text input,
+.large-text select,
+.large-text textarea {
+  font-size: 1.2rem;
+}
+
+/* Accessibility focus styles */
+:focus {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.high-contrast :focus {
+  outline: 3px solid #ffffff;
+}
+
+/* Touch target sizes */
+.touch-normal button, 
+.touch-normal [role="button"],
+.touch-normal a {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.touch-large button, 
+.touch-large [role="button"],
+.touch-large a {
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0.75rem !important;
+}
+
+.touch-xl button, 
+.touch-xl [role="button"],
+.touch-xl a {
+  min-height: 56px;
+  min-width: 56px;
+  padding: 1rem !important;
+}
+
+/* Reduce motion */
+.reduce-motion * {
+  animation-duration: 0.001ms !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* Keyboard navigation */
+.keyboard-nav:focus {
+  outline: 4px solid #2563eb !important;
+  outline-offset: 4px !important;
+}
+
+/* Animated elements */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Base responsive styles */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .md\:touch-normal button,
+  .md\:touch-normal [role="button"],
+  .md\:touch-normal a {
+    min-height: auto;
+    min-width: auto;
+  }
+}

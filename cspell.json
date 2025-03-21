@@ -1,0 +1,26 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "huggingface",
+    "fastspeech",
+    "tacotron",
+    "glowtts",
+    "vits",
+    "tfjs",
+    "tflite",
+    "tensorflowjs",
+    "quartznet",
+    "talkghana",
+    "autoregressive"
+  ],
+  "ignorePaths": [
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    "*.min.*",
+    "package-lock.json",
+    "yarn.lock"
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "short_name": "TalkGhana",
+  "name": "TalkGhana",
+  "description": "A progressive web app for learning and training Ghanaian languages",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#4c1d95",
+  "background_color": "#f9fafb",
+  "orientation": "portrait",
+  "categories": ["education", "productivity", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "shortcuts": [
+    {
+      "name": "Conversation Mode",
+      "short_name": "Conversation",
+      "description": "Practice conversations in Ghanaian languages",
+      "url": "/conversation",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Training Interface",
+      "short_name": "Training",
+      "description": "Train language models for Ghanaian languages",
+      "url": "/training",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+    }
+  ]
+}

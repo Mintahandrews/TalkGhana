@@ -1,0 +1,38 @@
+export const hausaConfig = {
+  code: "ha-GH",
+  name: "Hausa",
+  nativeName: "Hausa",
+  speechRecognition: {
+    code: "ha-GH",
+    fallback: "en-GH",
+  },
+  textToSpeech: {
+    code: "ha-GH",
+    fallback: "en-GH",
+    voicePreferences: ["ha-GH-Standard-A", "ha-GH-Standard-B"],
+  },
+  commands: {
+    help: "Taimako",
+    yes: "Eh",
+    no: "A'a",
+    emergency: "Gaggawa",
+    thankyou: "Na gode",
+    water: "Ina buƙatar ruwa",
+    food: "Ina jin yunwa",
+    bathroom: "Ina buƙatar bandaki",
+    pain: "Ina jin zafi",
+    medicine: "Ina buƙatar magani",
+    cold: "Ina jin sanyi",
+    hot: "Ina jin zafi",
+  },
+  conversations: {
+    greeting: "Sannu",
+    howAreYou: "Yaya kake?",
+    imFine: "Ina lafiya",
+    goodbye: "Sai an jima",
+    understand: "Na fahimta",
+    dontUnderstand: "Ban fahimta ba",
+    speakSlowly: "Don Allah, yi magana a hankali",
+    repeat: "Don Allah, sake faɗi",
+  },
+};

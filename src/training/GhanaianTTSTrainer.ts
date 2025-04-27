@@ -83,7 +83,7 @@ export class GhanaianTTSTrainer {
     language: GhanaianLanguage
   ): Promise<Record<string, string[]>> {
     console.log(`Creating pronunciation dictionary for ${language}...`);
-    return ghanaianDatasetManager.generatePronunciationData(language);
+    return ghanaianDatasetManager._generatePronunciationData(language);
   }
 
   /**

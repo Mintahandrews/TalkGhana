@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fix Chrome Extension Issues - TalkGhana</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #1d4ed8;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 10px;
+    }
+    h2 {
+      color: #1d4ed8;
+      margin-top: 30px;
+    }
+    .steps {
+      background-color: #f9fafb;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .steps ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .steps li {
+      margin-bottom: 10px;
+    }
+    code {
+      background-color: #e5e7eb;
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .error-message {
+      background-color: #fee2e2;
+      border-left: 4px solid #ef4444;
+      padding: 10px 15px;
+      margin: 20px 0;
+      font-family: monospace;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+    .note {
+      background-color: #e0f2fe;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    .solution {
+      background-color: #ecfdf5;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Fix Chrome Extension Issues in TalkGhana</h1>
+  
+  <div class="error-message">
+Denying load of chrome-extension://invalid/ Resources must be listed in the web_accessible_resources manifest key in order to be loaded by pages outside the extension.
+GET chrome-extension://invalid/ net::ERR_FAILED
+  </div>
+
+  <p>The errors you're seeing are caused by Chrome extensions trying to access resources without proper permissions. These errors don't affect your TalkGhana application, but they can clutter your console with error messages.</p>
+
+  <div class="note">
+    <strong>Note:</strong> These errors are coming from browser extensions installed in your Chrome browser, not from the TalkGhana application itself.
+  </div>
+
+  <h2>How to Resolve the Extension Errors</h2>
+
+  <div class="solution">
+    <h3>Solution 1: Run the application in Incognito Mode</h3>
+    <p>The simplest solution is to run your application in Chrome's Incognito Mode, where extensions are disabled by default:</p>
+    <div class="steps">
+      <ol>
+        <li>Open Chrome</li>
+        <li>Press <code>Cmd+Shift+N</code> (Mac) or <code>Ctrl+Shift+N</code> (Windows/Linux) to open an Incognito window</li>
+        <li>Navigate to <code>http://localhost:5174</code> to run your application without extensions</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="solution">
+    <h3>Solution 2: Disable Specific Extensions</h3>
+    <p>If you need to keep using your regular browser, you can identify and disable problematic extensions:</p>
+    <div class="steps">
+      <ol>
+        <li>Open Chrome and navigate to <code>chrome://extensions</code> in the address bar</li>
+        <li>Look for extensions that might be interfering with your application (translation tools, content blockers, developer tools, etc.)</li>
+        <li>Toggle the switch to disable each extension one by one, refreshing your app after each to see if the errors disappear</li>
+        <li>Once you identify the problematic extension(s), you can keep them disabled while working on TalkGhana</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="solution">
+    <h3>Solution 3: Create a separate Chrome profile for development</h3>
+    <p>For a long-term solution, create a dedicated Chrome profile for development:</p>
+    <div class="steps">
+      <ol>
+        <li>Click your profile icon in the top-right corner of Chrome</li>
+        <li>Click "Add" to create a new profile</li>
+        <li>Name it "Development" or similar</li>
+        <li>In this profile, only install the extensions you need for development</li>
+        <li>Use this profile when working on TalkGhana</li>
+      </ol>
+    </div>
+  </div>
+
+  <h2>What causes these errors?</h2>
+  <p>The error <code>Denying load of chrome-extension://invalid/</code> typically happens when:</p>
+  <ul>
+    <li>A browser extension is trying to inject scripts or resources into web pages</li>
+    <li>The extension hasn't properly declared these resources in its <code>manifest.json</code> file</li>
+    <li>Another extension is interfering with network requests</li>
+  </ul>
+
+  <div class="note">
+    <strong>Important:</strong> These errors are purely related to Chrome extensions and do not indicate any problems with your TalkGhana application code or functionality.
+  </div>
+</body>
+</html>

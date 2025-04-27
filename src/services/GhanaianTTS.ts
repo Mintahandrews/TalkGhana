@@ -62,6 +62,17 @@ export class GhanaianTTS {
       sannu: "'san-nu", // Hello
       nagode: "na-'go-de", // Thank you
     },
+    dagbani: {
+      // Dagbani phonetic replacements
+      ɛ: "eh", // Open e
+      ɔ: "aw", // Open o
+      ŋ: "ng", // Velar nasal
+      ɣ: "gh", // Voiced velar fricative
+      ʒ: "zh", // Voiced palatal fricative
+      // Common words with better pronunciation
+      mpagya: "m-pa-'gya", // Welcome
+      npuhimiya: "n-pu-hi-'mi-ya", // Thank you
+    },
     english: {}, // No replacements needed for English
   };
 
@@ -72,6 +83,7 @@ export class GhanaianTTS {
     ewe: 1.1, // Higher pitch for Ewe tones
     hausa: 1.15, // Higher pitch for Hausa tones
     english: 1.0, // Default pitch for English
+    dagbani: 1.05,
   };
 
   // Mapping to optimal speech rate values
@@ -81,6 +93,7 @@ export class GhanaianTTS {
     ewe: 0.85, // Slower for Ewe
     hausa: 0.9, // Slightly slower for Hausa
     english: 1.0, // Default rate for English
+    dagbani: 0.9,
   };
 
   private constructor() {
@@ -284,36 +297,60 @@ export class GhanaianTTS {
     }
   }
 
-  // Fetch synthesized speech from API
+  // Fetch synthesized speech from the server
   private async fetchSynthesizedSpeech(
     text: string,
     language: GhanaianLanguage,
-    options: { rate?: number; pitch?: number } = {}
+    options: {
+      rate?: number;
+      pitch?: number;
+      useGPT?: boolean;
+      isComparison?: boolean;
+    } = {}
   ): Promise<ArrayBuffer> {
-    // Apply phonetic rules before sending to API
+    const useComparisonEndpoint = options.isComparison === true;
+    const endpoint = useComparisonEndpoint
+      ? "/api/compare-tts"
+      : "/api/synthesize";
+
+    // Process text with phonetic rules before sending to server
     const processedText = this.applyPhoneticRules(text, language);
 
-    // Use default rate and pitch values for the language if not specified
-    const rate = options.rate || this.rateValues[language] || 1.0;
-    const pitch = options.pitch || this.pitchValues[language] || 1.0;
-
-    const params = new URLSearchParams({
+    // Create request parameters with appropriate options
+    const requestParams = {
       text: processedText,
       language,
-      rate: rate.toString(),
-      pitch: pitch.toString(),
-    });
+      speed: options.rate || this.rateValues[language],
+      pitch: options.pitch || this.pitchValues[language],
+      useGPT: options.useGPT !== undefined ? options.useGPT : true,
+      format: "mp3",
+    };
 
-    const response = await fetch(`${this.apiUrl}?${params.toString()}`);
+    try {
+      // Fetch the audio data from the server
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestParams),
+      });
 
-    if (!response.ok) {
-      throw new Error(`Failed to synthesize speech: ${response.statusText}`);
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch speech: ${response.status} ${response.statusText}`
+        );
+      }
+
+      // Convert the response to ArrayBuffer
+      return await response.arrayBuffer();
+    } catch (error) {
+      console.error("Error fetching synthesized speech:", error);
+      throw error;
     }
-
-    return await response.arrayBuffer();
   }
 
-  // Main speak method
+  // Main method to speak text
   public async speak(
     text: string,
     options: {
@@ -321,50 +358,81 @@ export class GhanaianTTS {
       rate?: number;
       pitch?: number;
       useCache?: boolean;
+      useGPT?: boolean;
+      isComparison?: boolean;
     } = {}
   ): Promise<void> {
     const language = options.language || this.language;
-    const useCache = options.useCache !== false; // Default to true
+    const useCache = options.useCache !== false;
+
+    // Check if the text is in the cache
+    const cacheKey = this.getCacheKey(text, language);
+    if (useCache && this.cachedAudio.has(cacheKey) && !options.isComparison) {
+      const cachedData = this.cachedAudio.get(cacheKey);
+      if (cachedData) {
+        await this.playAudio(cachedData);
+        return;
+      }
+    }
 
     try {
-      // Check cache first if enabled
-      if (useCache && this.hasCache(text, language)) {
-        const cachedAudio = this.getCachedAudio(text, language);
-        if (cachedAudio) {
-          await this.playAudio(cachedAudio);
-          return;
-        }
-      }
+      // Fetch the audio from the server
+      const audioData = await this.fetchSynthesizedSpeech(text, language, {
+        rate: options.rate,
+        pitch: options.pitch,
+        useGPT: options.useGPT,
+        isComparison: options.isComparison,
+      });
 
-      // Get synthesized speech
-      const audioData = await this.fetchSynthesizedSpeech(
-        text,
-        language,
-        options
-      );
-
-      // Cache for future use
-      if (useCache) {
+      // Save to cache if not a comparison (which may have different settings)
+      if (useCache && !options.isComparison) {
         this.saveToCache(text, language, audioData);
       }
 
       // Play the audio
       await this.playAudio(audioData);
     } catch (error) {
-      console.error("TTS error:", error);
+      console.error("Failed to speak:", error);
+      throw error;
+    }
+  }
 
-      // Fallback to browser TTS if available
-      if ("speechSynthesis" in window) {
-        try {
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.lang = language === "english" ? "en-US" : "en-GH"; // Fallback
-          utterance.rate = options.rate || this.rateValues[language] || 1.0;
-          utterance.pitch = options.pitch || this.pitchValues[language] || 1.0;
-          window.speechSynthesis.speak(utterance);
-        } catch (fallbackError) {
-          console.error("Fallback TTS also failed:", fallbackError);
-        }
+  // Submit feedback about speech quality
+  public async submitFeedback(
+    text: string,
+    language: GhanaianLanguage,
+    rating: number,
+    options: {
+      useGPT?: boolean;
+      comments?: string;
+    } = {}
+  ): Promise<boolean> {
+    try {
+      const response = await fetch("/api/speech-feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text,
+          language,
+          rating,
+          useGPT: options.useGPT !== undefined ? options.useGPT : true,
+          comments: options.comments || "",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to submit feedback: ${response.status} ${response.statusText}`
+        );
       }
+
+      const result = await response.json();
+      return result.status === "success";
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      return false;
     }
   }
 

@@ -1,0 +1,130 @@
+/**
+ * TalkGhana Theme System
+ * 
+ * This file defines CSS variables for theming the application in both light and dark modes.
+ * The theme variables use CSS custom properties to allow dynamic switching between themes
+ * without requiring a page reload.
+ * 
+ * Usage:
+ * - Light/dark mode is controlled by the .dark class on the html element
+ * - CSS variables are accessed using var(--variable-name)
+ * - The theme is toggled using the ThemeToggle component
+ */
+
+/* Set light mode as default */
+html {
+  color-scheme: light;
+}
+
+:root {
+  /* Light theme variables */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --bg-tertiary: #e5e7eb;
+
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-tertiary: #6b7280;
+
+  --accent-primary: #4f46e5;
+  --accent-secondary: #6366f1;
+
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #3b82f6;
+
+  --border-color: #e5e7eb;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+
+  /* Animation speeds */
+  --transition-slow: 500ms;
+  --transition-medium: 300ms;
+  --transition-fast: 150ms;
+
+  /* Focus outline styles */
+  --focus-ring-color: rgba(79, 70, 229, 0.45);
+  --focus-ring-width: 3px;
+
+  /* Spacing */
+  --spacing-xs: 0.25rem; /* 4px */
+  --spacing-sm: 0.5rem; /* 8px */
+  --spacing-md: 1rem; /* 16px */
+  --spacing-lg: 1.5rem; /* 24px */
+  --spacing-xl: 2rem; /* 32px */
+
+  /* Touch targets - following WCAG guidelines */
+  --touch-target-min: 44px;
+}
+
+/* Dark theme */
+.dark {
+  --bg-primary: #1f2937;
+  --bg-secondary: #111827;
+  --bg-tertiary: #374151;
+
+  --text-primary: #f9fafb;
+  --text-secondary: #e5e7eb;
+  --text-tertiary: #9ca3af;
+
+  --accent-primary: #6366f1;
+  --accent-secondary: #818cf8;
+
+  --border-color: #374151;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+
+  /* Dark mode-specific focus */
+  --focus-ring-color: rgba(99, 102, 241, 0.55);
+}
+
+/* Apply theme variables to elements */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color var(--transition-medium),
+    color var(--transition-medium);
+}
+
+/* Improved link styles */
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--accent-secondary);
+  text-decoration: underline;
+}
+
+/* Buttons with theme colors */
+button {
+  transition: background-color var(--transition-fast),
+    color var(--transition-fast), border-color var(--transition-fast);
+}
+
+/* Inputs with theme colors */
+input,
+select,
+textarea {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  transition: border-color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent-primary);
+  outline: none;
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+}
+
+/* Consistent border styles */
+hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: var(--spacing-md) 0;
+}

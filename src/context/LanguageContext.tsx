@@ -4,200 +4,107 @@ import {
   useContext,
   ReactNode,
   useEffect,
+  useCallback,
 } from "react";
+import { useTranslation } from "react-i18next";
+import i18n, {
+  changeLanguage,
+  languageContextMap,
+  getI18nCode,
+  getGhanaianLanguage,
+  applyTranslationsToElement,
+  translateText,
+} from "../i18n";
 
-export type GhanaianLanguage = "twi" | "ga" | "ewe" | "hausa" | "english";
+export type GhanaianLanguage =
+  | "twi"
+  | "ga"
+  | "ewe"
+  | "hausa"
+  | "english"
+  | "dagbani";
 
 interface LanguageContextType {
   currentLanguage: GhanaianLanguage;
   setLanguage: (language: GhanaianLanguage) => void;
   translations: Record<string, string>;
-  t: (key: string) => string;
+  t: (key: string, options?: any) => string;
   isLanguageLoaded: boolean;
+  applyTranslations: (element: HTMLElement) => void;
+  formatText: (text: string, options?: object) => string;
+  availableLanguages: {
+    code: string;
+    name: string;
+    localName: string;
+    voiceAvailable: boolean;
+    offlineSupport: boolean;
+  }[];
+  getLanguageResource: (code: string) =>
+    | {
+        code: string;
+        name: string;
+        localName: string;
+        voiceAvailable: boolean;
+        offlineSupport: boolean;
+      }
+    | undefined;
 }
 
+// Default translations are now managed by i18n files
 const defaultTranslations: Record<GhanaianLanguage, Record<string, string>> = {
-  hausa: {
-    welcome: "Sannu",
-    speak: "Yi magana",
-    listen: "Saurara",
-    settings: "Saituna",
-    homeTitle: "TalkGhana",
-    homeSubtitle: "AI taimako don magana",
-    conversationMode: "Yanayin Hira",
-    voiceCommands: "Umarnin Murya",
-    languageSettings: "Saituna na Harshe",
-    accessibilitySettings: "Saituna na Samun Damar Shiga",
-    highContrast: "Bambanci Mai Girma",
-    largeText: "Rubutu Mai Girma",
-    offlineMode: "Yanayin Offline",
-    currentLanguage: "Harshen da ake amfani da shi yanzu",
-    speechRate: "Gurin Magana",
-    speechPitch: "Muryar Magana",
-    suggestions: "Shawarwari",
-    type: "Rubuta",
-    emergency: "Gaggawa",
-    yes: "Eh",
-    no: "A'a",
-    thankyou: "Na gode",
-    help: "Taimako",
-    offline: "Offline",
-    online: "Online",
-    downloadComplete: "An gama sauke-sauke",
-    downloadFailed: "Sauke-sauke ya gaza",
-    downloadInProgress: "Ana sauke-sauke...",
-    storageManagement: "Gudanar da Ma'ajiya",
-    clearCache: "Share Cache",
-    offlineReady: "An shirya don offline",
-    syncRequired: "Ana buƙatar sync",
-    dataUsage: "Amfani da Data",
-    batteryOptimization: "Inganta Batir",
-  },
-  twi: {
-    welcome: "Akwaaba",
-    speak: "Kasa",
-    listen: "Tie",
-    settings: "Nhyehyɛe",
-    homeTitle: "TalkGhana",
-    homeSubtitle: "Mmɔborɔhunu ahyɛnsofo a wɔde AI ayɛ adwuma",
-    conversationMode: "Nkɔmmɔdie Kwan",
-    voiceCommands: "Nne Ahyɛdeɛ",
-    languageSettings: "Kasa Ho Nhyehyɛe",
-    accessibilitySettings: "Mmerɛyɛ Ho Nhyehyɛe",
-    highContrast: "Nsonsonoeɛ Kɛseɛ",
-    largeText: "Nkyerɛwee Kɛseɛ",
-    offlineMode: "Oflain Kwan",
-    currentLanguage: "Kasa a wɔredwene ho seisei",
-    speechRate: "Kasa ntɛmntɛm",
-    speechPitch: "Kasa nnyigyeɛ",
-    suggestions: "Nsusueɛ",
-    type: "Taep",
-    emergency: "Ɔhaw",
-    yes: "Aane",
-    no: "Daabi",
-    thankyou: "Medaase",
-    help: "Boa me",
-    offline: "Oflain",
-    online: "Onlain",
-    downloadComplete: "Atwede awie",
-    downloadFailed: "Atwede anni yie",
-    downloadInProgress: "Retrewee...",
-    storageManagement: "Adaka Nhyehyɛe",
-    clearCache: "Yi cache",
-    offlineReady: "Awie siesie ma oflain dwumadie",
-    syncRequired: "Ehia sync",
-    dataUsage: "Data Dwumadie",
-    batteryOptimization: "Battery Optimization",
-  },
-  ga: {
-    welcome: "Nnɛɛ",
-    speak: "Wiemo",
-    listen: "Boo",
-    settings: "Ntohoo",
-    homeTitle: "TalkGhana",
-    homeSubtitle: "AI hewale kɛ wi saji asharaloo",
-    conversationMode: "Sane Su",
-    voiceCommands: "Gbee Kitashii",
-    languageSettings: "Wiemɔ Mlihii",
-    accessibilitySettings: "Mlijemɔ Mlihii",
-    highContrast: "Srɔto Agbo",
-    largeText: "Ninemaa Agbo",
-    offlineMode: "Oflaini Su",
-    currentLanguage: "Wiemɔ ni Ajie Amrɔ Nɛɛ",
-    speechRate: "Wiemɔ Oyaayaa",
-    speechPitch: "Wiemɔ Wui",
-    suggestions: "Tsuii",
-    type: "Ŋma",
-    emergency: "Amrɔ Shia",
-    yes: "Hɛɛ",
-    no: "Daabi",
-    thankyou: "Oyiwaladon",
-    help: "Ye mi boa",
-    offline: "Oflaini",
-    online: "Onlaini",
-    downloadComplete: "Kɛdownload Eba Naagbee",
-    downloadFailed: "Kɛdownload Eyako Jogbaŋŋ",
-    downloadInProgress: "Kɛkɛɛ Miikɛdownload...",
-    storageManagement: "Kɛto Nii Kusum",
-    clearCache: "Tuu Cache",
-    offlineReady: "Esaa Kɛha Oflaini Nitsumo",
-    syncRequired: "Esa Akɛsync",
-    dataUsage: "Data Nitsumo",
-    batteryOptimization: "Battery Hewalemo",
-  },
-  ewe: {
-    welcome: "Woezor",
-    speak: "Ƒo nu",
-    listen: "Ɖo to",
-    settings: "Ɖoɖowo",
-    homeTitle: "TalkGhana",
-    homeSubtitle: "AI ƒe kpekpeɖeŋu na nuƒoƒo",
-    conversationMode: "Dzeɖoɖo Ƒomevi",
-    voiceCommands: "Gbe Sedeɖewo",
-    languageSettings: "Gbegbɔgblɔ Ðoɖowo",
-    accessibilitySettings: "Mɔxexe Ðoɖowo",
-    highContrast: "Vovototo Gã",
-    largeText: "Nuŋɔŋlɔ Gã",
-    offlineMode: "Oflaine Ƒomevi",
-    currentLanguage: "Gbegbɔgblɔ si le zɔzɔm fifia",
-    speechRate: "Nuƒoƒo ƒe Ɣeyiɣi",
-    speechPitch: "Nuƒoƒo ƒe Gã",
-    suggestions: "Adaŋudedowo",
-    type: "Ŋlɔ nu",
-    emergency: "Dzodzo Xaxa",
-    yes: "Ɛ",
-    no: "Ao",
-    thankyou: "Akpe",
-    help: "Kpe ɖe ŋunye",
-    offline: "Oflaine",
-    online: "Onlaine",
-    downloadComplete: "Daun loudin Vɔ",
-    downloadFailed: "Daun loudin Mede Edzi O",
-    downloadInProgress: "Daun loadim...",
-    storageManagement: "Dzraɖoƒe Ðoɖowo",
-    clearCache: "Tutu Cache",
-    offlineReady: "Sɔgbɔ Na Oflaine Dɔwɔwɔ",
-    syncRequired: "Ehiã Be Woawɔ Sync",
-    dataUsage: "Data Zazã",
-    batteryOptimization: "Battery Nyonyoɖeŋu",
-  },
-  english: {
-    welcome: "Welcome",
-    speak: "Speak",
-    listen: "Listen",
-    settings: "Settings",
-    homeTitle: "TalkGhana",
-    homeSubtitle: "AI-powered communication assistant",
-    conversationMode: "Conversation Mode",
-    voiceCommands: "Voice Commands",
-    languageSettings: "Language Settings",
-    accessibilitySettings: "Accessibility Settings",
-    highContrast: "High Contrast",
-    largeText: "Large Text",
-    offlineMode: "Offline Mode",
-    currentLanguage: "Current Language",
-    speechRate: "Speech Rate",
-    speechPitch: "Speech Pitch",
-    suggestions: "Suggestions",
-    type: "Type",
-    emergency: "Emergency",
-    yes: "Yes",
-    no: "No",
-    thankyou: "Thank you",
-    help: "Help me",
-    offline: "Offline",
-    online: "Online",
-    downloadComplete: "Download Complete",
-    downloadFailed: "Download Failed",
-    downloadInProgress: "Downloading...",
-    storageManagement: "Storage Management",
-    clearCache: "Clear Cache",
-    offlineReady: "Ready for Offline Use",
-    syncRequired: "Sync Required",
-    dataUsage: "Data Usage",
-    batteryOptimization: "Battery Optimization",
-  },
+  twi: {},
+  ga: {},
+  ewe: {},
+  hausa: {},
+  english: {},
+  dagbani: {},
 };
+
+// Language resources with additional metadata
+const languageResources = [
+  {
+    code: "english",
+    name: "English",
+    localName: "English",
+    voiceAvailable: true,
+    offlineSupport: true,
+  },
+  {
+    code: "twi",
+    name: "Twi",
+    localName: "Twi",
+    voiceAvailable: true,
+    offlineSupport: true,
+  },
+  {
+    code: "ga",
+    name: "Ga",
+    localName: "Gã",
+    voiceAvailable: true,
+    offlineSupport: true,
+  },
+  {
+    code: "ewe",
+    name: "Ewe",
+    localName: "Eʋegbe",
+    voiceAvailable: true,
+    offlineSupport: true,
+  },
+  {
+    code: "hausa",
+    name: "Hausa",
+    localName: "Harshen Hausa",
+    voiceAvailable: true,
+    offlineSupport: true,
+  },
+  {
+    code: "dagbani",
+    name: "Dagbani",
+    localName: "Dagbanli",
+    voiceAvailable: true,
+    offlineSupport: true,
+  },
+];
 
 const LanguageContext = createContext<LanguageContextType>({
   currentLanguage: "english",
@@ -205,6 +112,10 @@ const LanguageContext = createContext<LanguageContextType>({
   translations: defaultTranslations.english,
   t: (key) => key,
   isLanguageLoaded: false,
+  applyTranslations: () => {},
+  formatText: (text) => text,
+  availableLanguages: languageResources,
+  getLanguageResource: () => undefined,
 });
 
 export const useLanguage = () => useContext(LanguageContext);
@@ -223,6 +134,21 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
   );
   const [isLanguageLoaded, setIsLanguageLoaded] = useState(false);
 
+  // Use the i18next translation hook
+  const { t: i18nextT, ready } = useTranslation();
+
+  // When component mounts, set the i18n language
+  useEffect(() => {
+    // Convert GhanaianLanguage to i18n language code
+    const i18nLang = getI18nCode(currentLanguage);
+    i18n.changeLanguage(i18nLang);
+
+    // Set language loaded when i18next is ready
+    if (ready) {
+      setIsLanguageLoaded(true);
+    }
+  }, [ready, currentLanguage]);
+
   // Load language and check if we have offline data for it
   useEffect(() => {
     // Set current translations
@@ -239,12 +165,36 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
         if (offlineDataAvailable === "true") {
           // In a full implementation, we would load the offline data from IndexedDB here
           console.log(`Offline data available for ${currentLanguage}`);
-          // Set HTML lang attribute for screen readers
-          document.documentElement.lang =
-            currentLanguage === "english" ? "en" : currentLanguage;
         }
 
+        // Set HTML lang attribute for screen readers and better accessibility
+        document.documentElement.lang =
+          currentLanguage === "english" ? "en" : currentLanguage;
+
+        // Set a data attribute to allow CSS targeting based on language
+        document.documentElement.setAttribute("data-language", currentLanguage);
+
+        // Add language class to body for CSS styling
+        document.body.classList.remove(
+          "lang-english",
+          "lang-twi",
+          "lang-ga",
+          "lang-ewe",
+          "lang-hausa",
+          "lang-dagbani"
+        );
+        document.body.classList.add(`lang-${currentLanguage}`);
+
         // Broadcast language change event for components listening
+        const event = new CustomEvent("app-language-change", {
+          detail: {
+            language: currentLanguage,
+            i18nCode: getI18nCode(currentLanguage),
+          },
+        });
+        window.dispatchEvent(event);
+
+        // Also dispatch standard event for native HTML elements
         window.dispatchEvent(new Event("languagechange"));
 
         setIsLanguageLoaded(true);
@@ -257,18 +207,119 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
     checkOfflineData();
   }, [currentLanguage]);
 
-  const setLanguage = (language: GhanaianLanguage) => {
+  const setLanguage = useCallback((language: GhanaianLanguage) => {
+    // Update state
     setCurrentLanguage(language);
+
+    // Save to localStorage
     localStorage.setItem("language", language);
 
-    // Force update any components that might not be directly connected to the context
-    // This ensures that all parts of the app respond to language changes
-    document.documentElement.lang = language === "english" ? "en" : language;
-  };
+    // Set i18n language using the proper code
+    const i18nLang = getI18nCode(language);
+    changeLanguage(i18nLang);
 
-  const t = (key: string): string => {
-    return translations[key] || defaultTranslations.english[key] || key;
-  };
+    // Set HTML lang attribute for accessibility
+    document.documentElement.lang = i18nLang;
+
+    // Set data attribute for CSS
+    document.documentElement.setAttribute("data-language", language);
+
+    // Update body class for CSS styling
+    document.body.classList.remove(
+      "lang-english",
+      "lang-twi",
+      "lang-ga",
+      "lang-ewe",
+      "lang-hausa",
+      "lang-dagbani"
+    );
+    document.body.classList.add(`lang-${language}`);
+
+    // Create a custom event with language details
+    const event = new CustomEvent("app-language-change", {
+      detail: {
+        language,
+        i18nCode: i18nLang,
+      },
+    });
+
+    // Broadcast to all components
+    window.dispatchEvent(event);
+
+    // Also dispatch standard event
+    window.dispatchEvent(new Event("languagechange"));
+
+    // Force any elements with the 'lang' attribute to update
+    document.querySelectorAll("[lang]").forEach((el) => {
+      if (el instanceof HTMLElement) {
+        el.lang = i18nLang;
+      }
+    });
+
+    // Update elements with data-i18n attributes
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      if (el instanceof HTMLElement) {
+        const key = el.getAttribute("data-i18n");
+        if (key) {
+          el.textContent = i18n.t(key);
+        }
+      }
+    });
+
+    // Update placeholders and other attributes
+    document.querySelectorAll("[data-i18n-attr]").forEach((el) => {
+      if (el instanceof HTMLElement) {
+        const attrs = el.getAttribute("data-i18n-attr")?.split(",") || [];
+        attrs.forEach((attrPair) => {
+          const [attr, key] = attrPair.split(":");
+          if (attr && key) {
+            el.setAttribute(attr, i18n.t(key));
+          }
+        });
+      }
+    });
+
+    // Update title to reflect language change
+    if (document.title) {
+      const title = document.title;
+      // This forces a re-render of the title
+      document.title = "";
+      document.title = title;
+    }
+  }, []);
+
+  // Enhanced translation function that uses i18next but falls back to our legacy system
+  const t = useCallback(
+    (key: string, options?: any): string => {
+      // First try using i18next
+      const i18nTranslation = i18nextT(key, options);
+
+      // If i18next returns the key itself (meaning no translation), fall back to our legacy system
+      if (i18nTranslation === key || typeof i18nTranslation !== "string") {
+        return translations[key] || defaultTranslations.english[key] || key;
+      }
+
+      return i18nTranslation;
+    },
+    [i18nextT, translations]
+  );
+
+  // Utility function to apply translations to a dynamically created element
+  const applyTranslations = useCallback((element: HTMLElement): void => {
+    applyTranslationsToElement(element);
+  }, []);
+
+  // Format dynamic text with any special language-specific rules
+  const formatText = useCallback((text: string, options?: object): string => {
+    // Additional language-specific formatting could be applied here
+    // For now, we just pass through to translateText which will handle known keys
+    return translateText(text, options) || text;
+  }, []);
+
+  // Get a language resource by code
+  const getLanguageResource = useCallback((code: string) => {
+    return languageResources.find((resource) => resource.code === code);
+  }, []);
 
   return (
     <LanguageContext.Provider
@@ -278,6 +329,10 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
         translations,
         t,
         isLanguageLoaded,
+        applyTranslations,
+        formatText,
+        availableLanguages: languageResources,
+        getLanguageResource,
       }}
     >
       {children}

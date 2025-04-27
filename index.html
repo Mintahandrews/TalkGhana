@@ -2,46 +2,117 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#4c1d95" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#3b82f6" />
     <meta
       name="description"
-      content="TalkGhana: Learn and train speech models for Ghanaian languages"
+      content="TalkGhana: Assistive communication app for speech-impaired individuals using Ghanaian languages"
     />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
+    <meta name="apple-mobile-web-app-title" content="TalkGhana" />
+
+    <!-- Performance optimizations -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <meta name="msapplication-TileColor" content="#3b82f6" />
+
+    <!-- Preconnect to essential domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Preload critical assets -->
+    <link rel="preload" href="/static/css/main.css" as="style" />
+    <link rel="preload" href="/static/js/main.js" as="script" />
+
+    <!-- Open Graph / Social Media -->
     <meta property="og:title" content="TalkGhana" />
     <meta
       property="og:description"
-      content="Learn and train speech models for Ghanaian languages including Twi, Ga, Ewe, and Hausa"
+      content="Assistive communication app for speech-impaired individuals using Ghanaian languages including Twi, Ga, Ewe, Dagbani, and Hausa"
     />
-    <meta property="og:image" content="/logo512.png" type="image/png" />
-    <meta property="og:url" content="https://ghanaian-language-training.app" />
+    <meta property="og:image" content="/icons/og-image.png" />
+    <meta property="og:url" content="https://talkghana.org" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="TalkGhana" />
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:title" content="TalkGhana" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="TalkGhana" />
     <meta
-      property="twitter:description"
-      content="Learn and train speech models for Ghanaian languages including Twi, Ga, Ewe, and Hausa"
+      name="twitter:description"
+      content="Assistive communication app for speech-impaired individuals using Ghanaian languages including Twi, Ga, Ewe, Dagbani, and Hausa"
     />
-    <meta property="twitter:image" content="/logo512.png" type="image/png" />
+    <meta name="twitter:image" content="/icons/twitter-image.png" />
+
+    <!-- PWA assets -->
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/icons/favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="/icons/favicon-16x16.png"
+    />
     <link
       rel="apple-touch-icon"
       sizes="180x180"
-      href="/logo192.png"
-      type="image/png"
+      href="/icons/apple-touch-icon.png"
     />
+    <link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#3b82f6" />
     <link rel="manifest" href="/manifest.json" />
+
     <title>TalkGhana</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <noscript>
+      <div
+        style="
+          padding: 2rem;
+          text-align: center;
+          font-family: system-ui, sans-serif;
+        "
+      >
+        <h1>JavaScript Required</h1>
+        <p>
+          TalkGhana requires JavaScript to function. Please enable JavaScript to
+          use this application.
+        </p>
+      </div>
+    </noscript>
+
+    <!-- Service Worker Registration -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/service-worker.js")
+            .then((registration) => {
+              console.log(
+                "Service Worker registered with scope:",
+                registration.scope
+              );
+            })
+            .catch((error) => {
+              console.error("Service Worker registration failed:", error);
+            });
+        });
+      }
+    </script>
   </body>
 </html>

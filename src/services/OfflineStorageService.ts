@@ -4,6 +4,7 @@
 
 import { logError } from "../utils/ErrorHandler";
 import { GhanaianLanguage } from "../context/LanguageContext";
+import { v4 as uuidv4 } from "uuid";
 
 interface StorageStats {
   totalSize: number;
@@ -258,10 +259,292 @@ export async function clearAppCache(): Promise<boolean> {
   }
 }
 
-export default {
-  registerServiceWorker,
-  unregisterServiceWorkers,
-  isAppInstalled,
-  checkInstallAvailability,
-  clearAppCache,
-};
+export interface Recording {
+  id: string;
+  name: string;
+  blob: Blob;
+  createdAt: number;
+  duration: number;
+  transcription?: string;
+  uploaded?: boolean;
+}
+
+class OfflineStorageService {
+  private dbName = "TalkGhanaOfflineDB";
+  private dbVersion = 1;
+  private recordingsStoreName = "recordings";
+  private db: IDBDatabase | null = null;
+
+  constructor() {
+    this.init();
+  }
+
+  private init(): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
+      if (this.db) {
+        resolve(this.db);
+        return;
+      }
+
+      const request = indexedDB.open(this.dbName, this.dbVersion);
+
+      request.onerror = (event) => {
+        console.error("IndexedDB error:", event);
+        reject("Could not open IndexedDB");
+      };
+
+      request.onsuccess = (event) => {
+        this.db = (event.target as IDBOpenDBRequest).result;
+        resolve(this.db);
+      };
+
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+
+        // Create object store for recordings
+        if (!db.objectStoreNames.contains(this.recordingsStoreName)) {
+          const store = db.createObjectStore(this.recordingsStoreName, {
+            keyPath: "id",
+          });
+          store.createIndex("createdAt", "createdAt", { unique: false });
+          store.createIndex("name", "name", { unique: false });
+          store.createIndex("uploaded", "uploaded", { unique: false });
+        }
+      };
+    });
+  }
+
+  // Save a new recording to IndexedDB
+  async saveRecording(
+    name: string,
+    blob: Blob,
+    duration: number
+  ): Promise<Recording> {
+    await this.init();
+
+    const recording: Recording = {
+      id: uuidv4(),
+      name,
+      blob,
+      createdAt: Date.now(),
+      duration,
+      uploaded: false,
+    };
+
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject("Database not initialized");
+        return;
+      }
+
+      const transaction = this.db.transaction(
+        [this.recordingsStoreName],
+        "readwrite"
+      );
+      const store = transaction.objectStore(this.recordingsStoreName);
+      const request = store.add(recording);
+
+      request.onsuccess = () => {
+        resolve(recording);
+      };
+
+      request.onerror = (event) => {
+        console.error("Error saving recording:", event);
+        reject("Failed to save recording");
+      };
+    });
+  }
+
+  // Get all recordings
+  async getAllRecordings(): Promise<Recording[]> {
+    await this.init();
+
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject("Database not initialized");
+        return;
+      }
+
+      const transaction = this.db.transaction(
+        [this.recordingsStoreName],
+        "readonly"
+      );
+      const store = transaction.objectStore(this.recordingsStoreName);
+      const index = store.index("createdAt");
+      const request = index.openCursor(null, "prev"); // Sort newest first
+
+      const recordings: Recording[] = [];
+
+      request.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest)
+          .result as IDBCursorWithValue;
+
+        if (cursor) {
+          recordings.push(cursor.value);
+          cursor.continue();
+        } else {
+          resolve(recordings);
+        }
+      };
+
+      request.onerror = (event) => {
+        console.error("Error getting recordings:", event);
+        reject("Failed to get recordings");
+      };
+    });
+  }
+
+  // Get a specific recording by ID
+  async getRecording(id: string): Promise<Recording | null> {
+    await this.init();
+
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject("Database not initialized");
+        return;
+      }
+
+      const transaction = this.db.transaction(
+        [this.recordingsStoreName],
+        "readonly"
+      );
+      const store = transaction.objectStore(this.recordingsStoreName);
+      const request = store.get(id);
+
+      request.onsuccess = () => {
+        resolve(request.result || null);
+      };
+
+      request.onerror = (event) => {
+        console.error(`Error getting recording ${id}:`, event);
+        reject("Failed to get recording");
+      };
+    });
+  }
+
+  // Update a recording's transcription
+  async updateTranscription(id: string, transcription: string): Promise<void> {
+    await this.init();
+
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject("Database not initialized");
+        return;
+      }
+
+      const transaction = this.db.transaction(
+        [this.recordingsStoreName],
+        "readwrite"
+      );
+      const store = transaction.objectStore(this.recordingsStoreName);
+      const request = store.get(id);
+
+      request.onsuccess = () => {
+        const recording = request.result;
+        if (!recording) {
+          reject(`Recording ${id} not found`);
+          return;
+        }
+
+        recording.transcription = transcription;
+        const updateRequest = store.put(recording);
+
+        updateRequest.onsuccess = () => {
+          resolve();
+        };
+
+        updateRequest.onerror = (event) => {
+          console.error(`Error updating transcription for ${id}:`, event);
+          reject("Failed to update transcription");
+        };
+      };
+
+      request.onerror = (event) => {
+        console.error(
+          `Error getting recording ${id} for transcription update:`,
+          event
+        );
+        reject("Failed to get recording for transcription update");
+      };
+    });
+  }
+
+  // Mark a recording as uploaded
+  async markAsUploaded(id: string): Promise<void> {
+    await this.init();
+
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject("Database not initialized");
+        return;
+      }
+
+      const transaction = this.db.transaction(
+        [this.recordingsStoreName],
+        "readwrite"
+      );
+      const store = transaction.objectStore(this.recordingsStoreName);
+      const request = store.get(id);
+
+      request.onsuccess = () => {
+        const recording = request.result;
+        if (!recording) {
+          reject(`Recording ${id} not found`);
+          return;
+        }
+
+        recording.uploaded = true;
+        const updateRequest = store.put(recording);
+
+        updateRequest.onsuccess = () => {
+          resolve();
+        };
+
+        updateRequest.onerror = (event) => {
+          console.error(`Error marking recording ${id} as uploaded:`, event);
+          reject("Failed to mark recording as uploaded");
+        };
+      };
+
+      request.onerror = (event) => {
+        console.error(
+          `Error getting recording ${id} for upload marking:`,
+          event
+        );
+        reject("Failed to get recording for upload marking");
+      };
+    });
+  }
+
+  // Delete a recording
+  async deleteRecording(id: string): Promise<void> {
+    await this.init();
+
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject("Database not initialized");
+        return;
+      }
+
+      const transaction = this.db.transaction(
+        [this.recordingsStoreName],
+        "readwrite"
+      );
+      const store = transaction.objectStore(this.recordingsStoreName);
+      const request = store.delete(id);
+
+      request.onsuccess = () => {
+        resolve();
+      };
+
+      request.onerror = (event) => {
+        console.error(`Error deleting recording ${id}:`, event);
+        reject("Failed to delete recording");
+      };
+    });
+  }
+}
+
+// Create a singleton instance
+const offlineStorageService = new OfflineStorageService();
+export default offlineStorageService;

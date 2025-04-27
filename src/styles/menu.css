@@ -1,0 +1,71 @@
+/* Menu transition styles */
+.mobile-menu {
+  transition-property: max-height, opacity, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+  transform-origin: top;
+}
+
+.mobile-menu.closed {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+}
+
+.mobile-menu.open {
+  max-height: 300px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* NavLink hover and active states */
+.nav-link {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--accent-primary, #4f46e5);
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+  width: 100%;
+}
+
+/* Theme toggle animation */
+.theme-toggle {
+  overflow: hidden;
+}
+
+.theme-toggle-icon {
+  transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+
+/* Responsive menu adjustments */
+@media (max-width: 768px) {
+  .header-content {
+    padding-bottom: 0.5rem;
+    padding-top: 0.5rem;
+  }
+
+  .mobile-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+}
+
+/* Improved focus styles for keyboard navigation */
+.menu-toggle:focus-visible,
+.nav-link:focus-visible,
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent-primary, #4f46e5);
+  outline-offset: 2px;
+}

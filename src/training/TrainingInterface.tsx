@@ -151,6 +151,9 @@ const languageVocabulary: Record<GhanaianLanguage, string[]> = {
     "how are you",
     "my name is",
   ],
+  dagbani: [
+    "Desiba", "Naa", "Sɔŋmi", "Ii", "Ayi", "Pihimi", "Kɔm", "Nanzua"
+  ]
 };
 
 // Simulated training functions
@@ -274,7 +277,7 @@ const TrainingInterface: React.FC = () => {
                       <Form.Label>Language</Form.Label>
                       <Form.Select
                         value={selectedLanguage}
-                        onChange={(e) =>
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setSelectedLanguage(
                             e.target.value as GhanaianLanguage
                           )
@@ -293,7 +296,7 @@ const TrainingInterface: React.FC = () => {
                       <Form.Label>Training Type</Form.Label>
                       <Form.Select
                         value={trainingType}
-                        onChange={(e) =>
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setTrainingType(e.target.value as "tts" | "stt")
                         }
                       >
@@ -314,7 +317,7 @@ const TrainingInterface: React.FC = () => {
                             <Form.Label>Model Type</Form.Label>
                             <Form.Select
                               value={trainingOptions.modelType}
-                              onChange={(e) =>
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                                 setTrainingOptions({
                                   ...trainingOptions,
                                   modelType: e.target
@@ -334,7 +337,7 @@ const TrainingInterface: React.FC = () => {
                             <Form.Control
                               type="number"
                               value={trainingOptions.batchSize}
-                              onChange={(e) =>
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                                 setTrainingOptions({
                                   ...trainingOptions,
                                   batchSize: parseInt(e.target.value),

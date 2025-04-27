@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { GhanaianLanguage } from "../context/LanguageContext";
 import ApiService from "./ApiService";
+import ESPnetIntegration from "../utils/ESPnetIntegration";
 
 // Type definitions for Web Speech API
 interface SpeechRecognitionEvent extends Event {
@@ -24,6 +25,9 @@ interface SpeechRecognitionResultList {
   item(index: number): SpeechRecognitionResult;
   [index: number]: SpeechRecognitionResult;
 }
+
+// Import the external type
+import { SpeechRecognitionResult as RecognitionResult } from "../types";
 
 // Map Ghanaian languages to the closest available languages in Web Speech API
 const languageMap: Record<GhanaianLanguage, string> = {
@@ -463,6 +467,48 @@ export const useSpeechRecognition = (
         });
     }
   }, [language]);
+
+  // Function to recognize speech using ESPnet if available
+  const recognizeWithESPnet = async (audioBlob: Blob): Promise<string> => {
+    try {
+      if (!ESPnetIntegration.isESPnetAvailable()) {
+        throw new Error("ESPnet not available");
+      }
+
+      return await ESPnetIntegration.recognizeSpeech({
+        audioData: audioBlob,
+        language: language,
+      });
+    } catch (error) {
+      console.error("Error using ESPnet for speech recognition:", error);
+      throw error;
+    }
+  };
+
+  // Process recorded audio to get transcription
+  const processAudio = async (audioBlob: Blob): Promise<void> => {
+    try {
+      setProcessing(true);
+      let transcription = "";
+
+      // Try ESPnet recognition first if online
+      if (navigator.onLine && ESPnetIntegration.isESPnetAvailable()) {
+        try {
+          transcription = await recognizeWithESPnet(audioBlob);
+        } catch (error) {
+          console.warn("ESPnet recognition failed, falling back:", error);
+          // Fall back to other methods
+        }
+      }
+
+      // If ESPnet failed or unavailable, try other recognition methods...
+
+      // ... existing code ...
+    } catch (error) {
+      console.error("Error processing audio:", error);
+      setError("Failed to process audio. Please try again.");
+    }
+  };
 
   return {
     text,

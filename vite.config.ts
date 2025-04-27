@@ -1,14 +1,15 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import wasm from "vite-plugin-wasm";
-import topLevelAwait from "vite-plugin-top-level-await";
+// Commented out WASM plugins that are causing build issues
+// import wasm from "vite-plugin-wasm";
+// import topLevelAwait from "vite-plugin-top-level-await";
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
-    wasm(),
-    topLevelAwait(),
+    // wasm(),
+    // topLevelAwait(),
     {
       name: "error-reporter",
       configureServer(server) {
@@ -23,7 +24,7 @@ export default defineConfig({
     },
   ],
   server: {
-    port: 5173,
+    port: parseInt(process.env.VITE_PORT || "5174"),
     strictPort: true,
     host: true,
   },

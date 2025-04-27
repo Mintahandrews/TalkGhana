@@ -22,6 +22,7 @@ import {
   COMMAND_CATEGORIES,
   VoiceCommand,
 } from "../constants/commandCategories";
+import { toast } from "react-hot-toast";
 
 // Default commands set
 const defaultCommands: VoiceCommand[] = [
@@ -348,10 +349,70 @@ const VoiceCommands = () => {
     });
   };
 
-  const speakCommand = (text: string, commandId: string) => {
-    if (browserSupportsTTS) {
-      speak(text, preferences.speechRate, preferences.speechPitch);
-      updateCommandUsage(commandId);
+  const speakCommand = async (text: string, commandId: string) => {
+    if (!browserSupportsTTS) {
+      toast.error("Your browser doesn't support text-to-speech");
+      return;
+    }
+
+    // Show feedback to user that command is processing
+    toast.loading("Preparing to speak...", { id: "speech-toast" });
+
+    try {
+      // Track retries
+      let attempts = 0;
+      const maxAttempts = 2;
+
+      const attemptSpeak = async (): Promise<boolean> => {
+        try {
+          await speak(text, preferences.speechRate, preferences.speechPitch);
+          return true;
+        } catch (error) {
+          console.error(`Speech attempt ${attempts + 1} failed:`, error);
+          return false;
+        }
+      };
+
+      // Try to speak with retry logic
+      while (attempts < maxAttempts) {
+        const success = await attemptSpeak();
+        if (success) {
+          toast.success("Command spoken successfully", { id: "speech-toast" });
+          updateCommandUsage(commandId);
+          return;
+        }
+
+        attempts++;
+
+        // If first attempt failed but we can retry
+        if (attempts < maxAttempts) {
+          // Short delay before retry
+          await new Promise((resolve) => setTimeout(resolve, 300));
+
+          // Notify user of retry
+          toast.loading("Retrying speech...", { id: "speech-toast" });
+        }
+      }
+
+      // If we get here, all attempts failed
+      toast.error("Couldn't generate speech after multiple attempts", {
+        id: "speech-toast",
+      });
+
+      // Fallback to browser native speech if available
+      if (window.speechSynthesis) {
+        toast("Using browser's built-in speech", {
+          id: "speech-toast-fallback",
+        });
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = preferences.speechRate;
+        utterance.pitch = preferences.speechPitch;
+        window.speechSynthesis.speak(utterance);
+        updateCommandUsage(commandId);
+      }
+    } catch (error) {
+      console.error("Command speech error:", error);
+      toast.error("Failed to speak command", { id: "speech-toast" });
     }
   };
 

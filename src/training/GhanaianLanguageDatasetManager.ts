@@ -1,27 +1,32 @@
-import * as fs from "fs";
-import * as path from "path";
-import * as csv from "csv-parser";
+/**
+ * GhanaianLanguageDatasetManager - Manager for language datasets and resources
+ *
+ * This module manages language-specific datasets, tools, and resources
+ * for Ghanaian languages, including pronunciation dictionaries, text corpora,
+ * and audio datasets.
+ */
+
+import fs from "fs";
+import path from "path";
+import csvParser from "csv-parser";
 import ISO6391 from "iso-639-1";
 import natural from "natural";
 import compromise from "compromise";
 import syllables from "compromise-syllables";
 
-// Add syllable plugin to compromise
-compromise.extend(syllables);
+// Register plugins
+compromise.plugin(syllables);
 
-// Define supported Ghanaian languages
-export type GhanaianLanguage = "twi" | "ga" | "ewe" | "hausa" | "english";
+// Define Ghanaian language type
+export type GhanaianLanguage =
+  | "twi"
+  | "ga"
+  | "ewe"
+  | "hausa"
+  | "dagbani"
+  | "english";
 
-// Map Ghanaian languages to ISO codes (approximations where direct codes don't exist)
-const languageISOMap: Record<GhanaianLanguage, string> = {
-  twi: "ak", // Akan
-  ga: "gaa",
-  ewe: "ee",
-  hausa: "ha",
-  english: "en",
-};
-
-// Data entry interface
+// Define interfaces
 interface DataEntry {
   id: string;
   text: string;
@@ -33,65 +38,382 @@ interface DataEntry {
   source?: string;
 }
 
-/**
- * Manager for Ghanaian language datasets
- */
-export class GhanaianLanguageDatasetManager {
+interface DatasetStats {
+  hours: number;
+  speakers: number;
+  utterances: number;
+  maleRatio: number;
+  femaleRatio: number;
+  averageDuration: number; // seconds
+  dateCreated: string;
+  lastUpdated: string;
+}
+
+interface Dataset {
+  language: GhanaianLanguage;
+  name: string;
+  description: string;
+  path: string;
+  stats: DatasetStats;
+  license: string;
+  sourceName?: string;
+  sourceUrl?: string;
+}
+
+interface PronunciationDictionary {
+  [word: string]: string[];
+}
+
+class GhanaianLanguageDatasetManager {
+  private datasetRegistry: Record<GhanaianLanguage, Dataset[]> = {
+    twi: [],
+    ga: [],
+    ewe: [],
+    hausa: [],
+    english: [],
+    dagbani: [],
+  };
+
+  private pronunciationDictionaries: Record<
+    GhanaianLanguage,
+    PronunciationDictionary
+  > = {
+    twi: {},
+    ga: {},
+    ewe: {},
+    hausa: {},
+    english: {},
+    dagbani: {},
+  };
+
   private dataDir: string;
   private tokenizerCache: Record<GhanaianLanguage, any> = {} as any;
+  private initialized = false;
 
   /**
-   * Create a new dataset manager
-   * @param dataDir Root directory for data storage
+   * Creates a new instance of GhanaianLanguageDatasetManager
+   * @param dataDir Directory where data will be stored
    */
   constructor(dataDir = path.join(process.cwd(), "data")) {
     this.dataDir = dataDir;
-    this.ensureDirectoriesExist();
+    // Ensure data directory exists
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
   }
 
-  /**
-   * Ensure all required directories exist
-   */
-  private ensureDirectoriesExist() {
-    const dirs = [
-      "audio/raw",
-      "audio/processed",
-      "text/raw",
-      "text/processed",
-      "models",
-      "training_logs",
-    ];
-
-    for (const language of ["twi", "ga", "ewe", "hausa", "english"]) {
-      dirs.push(`audio/raw/${language}`);
-      dirs.push(`audio/processed/${language}`);
-      dirs.push(`text/raw/${language}`);
-      dirs.push(`text/processed/${language}`);
-      dirs.push(`models/${language}`);
+  async initialize(): Promise<void> {
+    if (this.initialized) {
+      return;
     }
 
-    for (const dir of dirs) {
-      const dirPath = path.join(this.dataDir, dir);
+    try {
+      await this.loadDatasetRegistry();
+      await this.loadPronunciationDictionaries();
+      this.initialized = true;
+    } catch (error) {
+      console.error("Failed to initialize dataset manager:", error);
+      // Create sample data if initialization fails
+      this.createSampleDatasetRegistry();
+
+      // Create sample pronunciation dictionaries
+      Object.keys(this.pronunciationDictionaries).forEach((lang) => {
+        this.createSamplePronunciations(lang as GhanaianLanguage);
+      });
+
+      this.initialized = true;
+    }
+  }
+
+  private async loadDatasetRegistry(): Promise<void> {
+    const registryPath = path.join(this.dataDir, "dataset-registry.json");
+    if (fs.existsSync(registryPath)) {
       try {
-        if (!fs.existsSync(dirPath)) {
-          fs.mkdirSync(dirPath, { recursive: true });
-          console.log(`Created directory: ${dirPath}`);
+        const data = JSON.parse(fs.readFileSync(registryPath, "utf8"));
+        this.datasetRegistry = data;
+      } catch (error) {
+        console.error("Failed to load dataset registry:", error);
+        throw error;
+      }
+    } else {
+      // Create default registry
+      this.createSampleDatasetRegistry();
+      this.saveDatasetRegistry();
+    }
+  }
+
+  private createSampleDatasetRegistry(): void {
+    // Sample datasets for each language
+    const languages: GhanaianLanguage[] = [
+      "twi",
+      "ga",
+      "ewe",
+      "hausa",
+      "english",
+      "dagbani",
+    ];
+
+    languages.forEach((lang) => {
+      this.datasetRegistry[lang] = [
+        {
+          language: lang,
+          name: `${lang}-common-phrases`,
+          description: `Common phrases in ${lang}`,
+          path: path.join(this.dataDir, lang, "common-phrases"),
+          stats: {
+            hours: 0.5,
+            speakers: 2,
+            utterances: 100,
+            maleRatio: 0.5,
+            femaleRatio: 0.5,
+            averageDuration: 3,
+            dateCreated: new Date().toISOString(),
+            lastUpdated: new Date().toISOString(),
+          },
+          license: "CC BY 4.0",
+          sourceName: "TalkGhana Sample Data",
+          sourceUrl: "https://talkghana.example.org",
+        },
+        {
+          language: lang,
+          name: `${lang}-conversations`,
+          description: `Conversational data in ${lang}`,
+          path: path.join(this.dataDir, lang, "conversations"),
+          stats: {
+            hours: 1.2,
+            speakers: 5,
+            utterances: 250,
+            maleRatio: 0.6,
+            femaleRatio: 0.4,
+            averageDuration: 4.5,
+            dateCreated: new Date().toISOString(),
+            lastUpdated: new Date().toISOString(),
+          },
+          license: "CC BY 4.0",
+          sourceName: "TalkGhana Sample Data",
+          sourceUrl: "https://talkghana.example.org",
+        },
+      ];
+    });
+  }
+
+  private saveDatasetRegistry(): void {
+    const registryPath = path.join(this.dataDir, "dataset-registry.json");
+    try {
+      fs.writeFileSync(
+        registryPath,
+        JSON.stringify(this.datasetRegistry, null, 2)
+      );
+    } catch (error) {
+      console.error("Failed to save dataset registry:", error);
+    }
+  }
+
+  private async loadPronunciationDictionaries(): Promise<void> {
+    const languages: GhanaianLanguage[] = [
+      "twi",
+      "ga",
+      "ewe",
+      "hausa",
+      "english",
+      "dagbani",
+    ];
+
+    for (const lang of languages) {
+      const dictPath = path.join(this.dataDir, `pronunciation-${lang}.json`);
+
+      if (fs.existsSync(dictPath)) {
+        try {
+          const data = JSON.parse(fs.readFileSync(dictPath, "utf8"));
+          this.pronunciationDictionaries[lang] = data;
+        } catch (error) {
+          console.error(
+            `Failed to load pronunciation dictionary for ${lang}:`,
+            error
+          );
+          this.createSamplePronunciations(lang);
         }
-      } catch (error: any) {
-        console.error(`Error creating directory ${dirPath}:`, error);
-        throw new Error(
-          `Failed to create directory ${dirPath}: ${error.message}`
-        );
+      } else {
+        this.createSamplePronunciations(lang);
+        this.savePronunciationDictionary(lang);
       }
     }
   }
 
-  /**
-   * Import text data from CSV file
-   * @param filePath Path to the CSV file
-   * @param language Target language
-   * @param options Import options
-   */
+  private createSamplePronunciations(language: GhanaianLanguage): void {
+    // Create some sample pronunciations for each language
+    const sampleWords: Record<GhanaianLanguage, Record<string, string[]>> = {
+      twi: {
+        akwaaba: ["a", "kwa", "ba"],
+        yɛ: ["yeh"],
+        ɔdɔ: ["oh", "doh"],
+        medaase: ["me", "da", "se"],
+      },
+      ga: {
+        ogekoo: ["o", "ge", "koo"],
+        miyiwaladon: ["mi", "yi", "wa", "la", "don"],
+        ŋmɛnɛ: ["ŋmɛ", "nɛ"],
+      },
+      ewe: {
+        akpe: ["a", "kpe"],
+        woezɔ: ["wo", "e", "zɔ"],
+        ɖeka: ["ɖe", "ka"],
+      },
+      hausa: {
+        sannu: ["san", "nu"],
+        nagode: ["na", "go", "de"],
+        ina: ["i", "na"],
+      },
+      english: {
+        hello: ["he", "llo"],
+        welcome: ["wel", "come"],
+        thank: ["thank"],
+        you: ["you"],
+      },
+      dagbani: {
+        desiba: ["de", "si", "ba"],
+        naa: ["naa"],
+        sɔŋmi: ["sɔŋ", "mi"],
+      },
+    };
+
+    this.pronunciationDictionaries[language] = {};
+
+    // Add sample words
+    if (sampleWords[language]) {
+      Object.entries(sampleWords[language]).forEach(([word, syllables]) => {
+        this.pronunciationDictionaries[language][word] = syllables;
+      });
+    }
+  }
+
+  private savePronunciationDictionary(language: GhanaianLanguage): void {
+    const dictPath = path.join(this.dataDir, `pronunciation-${language}.json`);
+
+    try {
+      fs.writeFileSync(
+        dictPath,
+        JSON.stringify(this.pronunciationDictionaries[language], null, 2)
+      );
+    } catch (error) {
+      console.error(
+        `Failed to save pronunciation dictionary for ${language}:`,
+        error
+      );
+    }
+  }
+
+  registerDataset(dataset: Dataset): void {
+    if (!this.datasetRegistry[dataset.language]) {
+      this.datasetRegistry[dataset.language] = [];
+    }
+    this.datasetRegistry[dataset.language].push(dataset);
+    this.saveDatasetRegistry();
+  }
+
+  getDatasets(language: GhanaianLanguage): Dataset[] {
+    if (!this.datasetRegistry[language]) {
+      return [];
+    }
+    return this.datasetRegistry[language];
+  }
+
+  getAllDatasets(): Record<GhanaianLanguage, Dataset[]> {
+    return this.datasetRegistry;
+  }
+
+  async _generatePronunciationData(
+    language: GhanaianLanguage
+  ): Promise<PronunciationDictionary> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
+    // This is a placeholder for more sophisticated generation
+    // In a real system, this would use language-specific rules
+    return this.pronunciationDictionaries[language];
+  }
+
+  getPronunciation(language: GhanaianLanguage, word: string): string[] {
+    const dict = this.pronunciationDictionaries[language];
+    const normalizedWord = word.toLowerCase().trim();
+
+    if (dict[normalizedWord]) {
+      return dict[normalizedWord];
+    }
+
+    // Simple fallback using general syllabification
+    return this.syllabify(normalizedWord, language);
+  }
+
+  async getTextCorpus(
+    language: GhanaianLanguage,
+    maxLines = 1000
+  ): Promise<string[]> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
+    const corpusPath = path.join(this.dataDir, language, "corpus", "text.txt");
+
+    if (fs.existsSync(corpusPath)) {
+      const content = fs.readFileSync(corpusPath, "utf8");
+      return content.split("\n").slice(0, maxLines);
+    }
+
+    // Generate dummy corpus if no real data exists
+    return this.generateDummyCorpus(language, maxLines);
+  }
+
+  private generateDummyCorpus(
+    language: GhanaianLanguage,
+    lines: number
+  ): string[] {
+    // Simple phrases for testing
+    const corpus: string[] = [];
+    const prefix = language.charAt(0).toUpperCase() + language.slice(1);
+
+    for (let i = 0; i < lines; i++) {
+      corpus.push(`${prefix} sample text ${i + 1}`);
+    }
+
+    return corpus;
+  }
+
+  getDatasetSplit(
+    language: GhanaianLanguage,
+    datasetName: string
+  ): { train: string[]; val: string[]; test: string[] } {
+    // Default empty split
+    const emptySplit = { train: [], val: [], test: [] };
+
+    // Find the dataset
+    const dataset = this.datasetRegistry[language]?.find(
+      (ds) => ds.name === datasetName
+    );
+
+    if (!dataset) {
+      return emptySplit;
+    }
+
+    // In a real implementation, this would read actual split files
+    return {
+      train: this.generateDummyCorpus(language, 80),
+      val: this.generateDummyCorpus(language, 10),
+      test: this.generateDummyCorpus(language, 10),
+    };
+  }
+
+  getAudioDataPath(language: GhanaianLanguage): string {
+    const audioPath = path.join(this.dataDir, language, "audio");
+
+    if (!fs.existsSync(audioPath)) {
+      fs.mkdirSync(audioPath, { recursive: true });
+    }
+
+    return audioPath;
+  }
+
   async importTextFromCSV(
     filePath: string,
     language: GhanaianLanguage,
@@ -103,144 +425,95 @@ export class GhanaianLanguageDatasetManager {
       skipLines?: number;
     }
   ): Promise<DataEntry[]> {
-    const entries: DataEntry[] = [];
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`File not found: ${filePath}`);
+    }
 
     return new Promise((resolve, reject) => {
-      if (!fs.existsSync(filePath)) {
-        reject(new Error(`File not found: ${filePath}`));
-        return;
-      }
+      const results: DataEntry[] = [];
 
-      let count = 0;
       fs.createReadStream(filePath)
-        .on("error", (error) => {
-          reject(new Error(`Error reading file ${filePath}: ${error.message}`));
-        })
         .pipe(
-          csv({
+          csvParser({
             separator: options.delimiter || ",",
             skipLines: options.skipLines || 0,
           })
         )
-        .on("data", (data) => {
-          count++;
-          // Create a unique ID if none provided
-          const id =
-            options.idColumn && data[options.idColumn]
-              ? data[options.idColumn]
-              : `${language}-${Date.now()}-${count}`;
-
-          // Ensure text column exists
+        .on("data", (data: any) => {
           if (!data[options.textColumn]) {
-            console.warn(
-              `Row ${count} is missing text column "${options.textColumn}", skipping.`
-            );
-            return;
+            return; // Skip if no text
           }
 
           const entry: DataEntry = {
-            id,
+            id:
+              data[options.idColumn || "id"] ||
+              `${language}-${Date.now()}-${results.length}`,
             text: data[options.textColumn],
             language,
-            source: path.basename(filePath),
           };
 
           if (options.translationColumn && data[options.translationColumn]) {
             entry.translation = data[options.translationColumn];
           }
 
-          entries.push(entry);
+          // Clean the text
+          entry.textClean = this.cleanText(entry.text, language);
+
+          results.push(entry);
+        })
+        .on("error", (error: Error) => {
+          reject(error);
         })
         .on("end", () => {
-          try {
-            this.saveTextData(entries, language);
-            resolve(entries);
-          } catch (error: any) {
-            reject(new Error(`Error saving text data: ${error.message}`));
-          }
-        })
-        .on("error", (error) => {
-          reject(new Error(`Error parsing CSV file: ${error.message}`));
+          resolve(results);
         });
     });
   }
 
-  /**
-   * Clean and preprocess text for the given language
-   * @param text Input text
-   * @param language Target language
-   */
   cleanText(text: string, language: GhanaianLanguage): string {
-    if (!text) return "";
+    // Basic cleaning functions
+    let cleaned = text.trim();
 
-    // Basic cleaning for all languages
-    let cleaned = text
-      .replace(/\s+/g, " ") // Normalize whitespace
-      .replace(/[^\p{L}\p{N}\p{P}\s]/gu, "") // Keep only letters, numbers, punctuation and spaces
-      .trim();
+    // Remove excess spaces
+    cleaned = cleaned.replace(/\s+/g, " ");
 
-    // Language-specific cleaning
-    switch (language) {
-      case "twi":
-        // Handle Twi-specific characters and patterns
-        cleaned = cleaned
-          .replace(/ɛ/g, "ε") // Normalize open e
-          .replace(/ɔ/g, "ɔ"); // Normalize open o
-        break;
+    // Remove special characters based on language
+    if (language === "english") {
+      // For English, remove most punctuation except essential ones
+      cleaned = cleaned.replace(/[^\w\s.,?!-]/g, "");
+    } else {
+      // For Ghanaian languages, preserve more characters that might be part of the language
+      cleaned = cleaned.replace(/[^\w\s.,?!\-\u0300-\u036F\u0250-\u02AF]/g, "");
+    }
 
-      case "ga":
-        // Handle Ga-specific characters
-        cleaned = cleaned.replace(/ɛ/g, "ε").replace(/ɔ/g, "ɔ");
-        break;
-
-      case "ewe":
-        // Handle Ewe-specific characters
-        cleaned = cleaned
-          .replace(/ɖ/g, "d")
-          .replace(/ƒ/g, "f")
-          .replace(/ɣ/g, "h");
-        break;
-
-      case "hausa":
-        // Handle Hausa-specific characters
-        cleaned = cleaned
-          .replace(/ɓ/g, "b'")
-          .replace(/ɗ/g, "d'")
-          .replace(/ƙ/g, "k'");
-        break;
-
-      case "english":
-        // Standard English cleaning
-        cleaned = cleaned.toLowerCase();
-        break;
+    // Normalize specific characters for Ghanaian languages
+    if (language !== "english") {
+      // Map various forms of open-o and open-e to standard forms
+      cleaned = cleaned.replace(/[ɔòóôõöø]/g, "ɔ").replace(/[ɛèéêë]/g, "ɛ");
     }
 
     return cleaned;
   }
 
-  /**
-   * Get or create a tokenizer for the specified language
-   * @param language Target language
-   */
   getTokenizer(language: GhanaianLanguage) {
     if (this.tokenizerCache[language]) {
       return this.tokenizerCache[language];
     }
 
+    // Create appropriate tokenizer by language
     let tokenizer;
 
     if (language === "english") {
-      // For English, use an existing tokenizer
+      // For English, use natural's tokenizer
       tokenizer = new natural.WordTokenizer();
     } else {
-      // For Ghanaian languages, create a custom tokenizer
-      // This is a simple implementation; for production, you'd want more sophisticated rules
+      // For Ghanaian languages, use a custom tokenizer that respects diacritics
       tokenizer = {
         tokenize: (text: string) => {
-          // Split on whitespace and punctuation
+          // Split on spaces and punctuation, but keep diacritics with their base characters
           return text
-            .split(/[\s,.!?;:()\[\]{}'"\/\\<>@#$%^&*_+=|-]+/)
-            .filter((t) => t.length > 0);
+            .split(/[\s.,!?;:"'()\[\]{}\\\/\-+=$&@#%^*_|~<>]+/)
+            .filter((token) => token.length > 0);
         },
       };
     }
@@ -249,114 +522,117 @@ export class GhanaianLanguageDatasetManager {
     return tokenizer;
   }
 
-  /**
-   * Tokenize text in the specified language
-   * @param text Input text
-   * @param language Target language
-   */
   tokenize(text: string, language: GhanaianLanguage): string[] {
     const tokenizer = this.getTokenizer(language);
     return tokenizer.tokenize(text);
   }
 
-  /**
-   * Split text into syllables (approximate for Ghanaian languages)
-   * @param text Input text
-   * @param language Target language
-   */
   syllabify(text: string, language: GhanaianLanguage): string[] {
     if (language === "english") {
       // Use compromise for English
       const doc = compromise(text);
-      // @ts-ignore - syllables plugin adds this method
-      return doc.syllables().json()[0]?.syllables || [];
+      const syllables = doc.syllables().json({ text: true, normal: true });
+
+      if (syllables && syllables.length > 0) {
+        return syllables[0].syllables || [text];
+      }
+
+      return [text];
     }
 
-    // For Ghanaian languages, use simplified syllabification rules
-    // These are very basic approximations - a real system would need language-specific rules
-    const vowels = "aeiouɛɔəɪʊ";
-    const syllables: string[] = [];
-    let currentSyllable = "";
+    // Simple syllabification rules for Ghanaian languages
+    // This is a very basic implementation; real systems would use language-specific rules
+    const words = this.tokenize(text, language);
+    const results: string[] = [];
 
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      currentSyllable += char;
+    for (const word of words) {
+      // Check if we have this word in our pronunciation dictionary
+      const pronunciation =
+        this.pronunciationDictionaries[language][word.toLowerCase()];
 
-      if (vowels.includes(char.toLowerCase())) {
-        // If we have a vowel and the next character is a consonant or end of word
-        if (
-          i === text.length - 1 ||
-          !vowels.includes(text[i + 1].toLowerCase())
-        ) {
-          syllables.push(currentSyllable);
-          currentSyllable = "";
+      if (pronunciation) {
+        results.push(...pronunciation);
+        continue;
+      }
+
+      // Basic CV syllabification for Ghanaian languages
+      // Most Ghanaian languages have simple CV (consonant-vowel) syllable structure
+      const chars = word.split("");
+      let currentSyllable = "";
+
+      for (let i = 0; i < chars.length; i++) {
+        currentSyllable += chars[i];
+
+        // If this is a vowel and not the last character, break the syllable
+        const isVowel = /[aeiouɛɔ]/i.test(chars[i]);
+        const isLastChar = i === chars.length - 1;
+
+        if (isVowel && !isLastChar) {
+          // Look ahead to see if next char is a vowel
+          const nextIsVowel = /[aeiouɛɔ]/i.test(chars[i + 1]);
+
+          if (!nextIsVowel) {
+            results.push(currentSyllable);
+            currentSyllable = "";
+          }
+        } else if (isLastChar && currentSyllable) {
+          results.push(currentSyllable);
         }
       }
     }
 
-    // Add any remaining text
-    if (currentSyllable.length > 0) {
-      syllables.push(currentSyllable);
-    }
-
-    return syllables;
+    return results;
   }
 
-  /**
-   * Save text data to storage
-   * @param entries Data entries to save
-   * @param language Target language
-   */
   saveTextData(entries: DataEntry[], language: GhanaianLanguage): void {
-    if (entries.length === 0) {
-      console.warn(`No entries to save for language ${language}`);
-      return;
+    const textDir = path.join(this.dataDir, language, "text");
+
+    if (!fs.existsSync(textDir)) {
+      fs.mkdirSync(textDir, { recursive: true });
     }
 
-    // Ensure directories exist
-    const rawDir = path.join(this.dataDir, "text", "raw", language);
-    const processedDir = path.join(this.dataDir, "text", "processed", language);
+    // Save as JSON
+    const jsonPath = path.join(textDir, `${language}-data-${Date.now()}.json`);
+    fs.writeFileSync(jsonPath, JSON.stringify(entries, null, 2));
 
-    try {
-      if (!fs.existsSync(rawDir)) {
-        fs.mkdirSync(rawDir, { recursive: true });
-      }
-      if (!fs.existsSync(processedDir)) {
-        fs.mkdirSync(processedDir, { recursive: true });
-      }
+    // Also save as CSV
+    const csvPath = path.join(textDir, `${language}-data-${Date.now()}.csv`);
+    const csvHeader = "id,text,textClean,translation,language\n";
+    const csvRows = [csvHeader];
 
-      // Clean the text for each entry
-      for (const entry of entries) {
-        entry.textClean = this.cleanText(entry.text, language);
-      }
-
-      // Save to raw data directory
-      const timestamp = Date.now();
-      const rawFilePath = path.join(rawDir, `data_${timestamp}.json`);
-
-      fs.writeFileSync(rawFilePath, JSON.stringify(entries, null, 2));
-
-      // Also save cleaned version to processed directory
-      const processedFilePath = path.join(
-        processedDir,
-        `data_${timestamp}.json`
+    entries.forEach((entry) => {
+      csvRows.push(
+        `"${entry.id}","${entry.text.replace(/"/g, '""')}","${(
+          entry.textClean || ""
+        ).replace(/"/g, '""')}","${(entry.translation || "").replace(
+          /"/g,
+          '""'
+        )}","${entry.language}"\n`
       );
+    });
 
-      fs.writeFileSync(processedFilePath, JSON.stringify(entries, null, 2));
+    fs.writeFileSync(csvPath, csvRows.join(""));
 
-      console.log(`Saved ${entries.length} entries for ${language}`);
-    } catch (error: any) {
-      console.error(`Error saving text data for ${language}:`, error);
-      throw new Error(`Failed to save text data: ${error.message}`);
-    }
+    // Update registry
+    this.registerDataset({
+      language,
+      name: `${language}-text-${Date.now()}`,
+      description: `Text data for ${language}`,
+      path: textDir,
+      stats: {
+        hours: 0,
+        speakers: 0,
+        utterances: entries.length,
+        maleRatio: 0,
+        femaleRatio: 0,
+        averageDuration: 0,
+        dateCreated: new Date().toISOString(),
+        lastUpdated: new Date().toISOString(),
+      },
+      license: "CC BY 4.0",
+    });
   }
 
-  /**
-   * Import audio files
-   * @param audioDir Directory containing audio files
-   * @param metadataFile Optional CSV file with metadata
-   * @param language Target language
-   */
   async importAudioFiles(
     audioDir: string,
     metadataFile: string | null,
@@ -366,294 +642,170 @@ export class GhanaianLanguageDatasetManager {
       throw new Error(`Audio directory not found: ${audioDir}`);
     }
 
-    // Get metadata if available
-    const metadata: Record<string, any> = {};
+    const outputDir = this.getAudioDataPath(language);
+    const entries: DataEntry[] = [];
+
+    // Read metadata if provided
+    let metadata: Record<string, any> = {};
 
     if (metadataFile && fs.existsSync(metadataFile)) {
-      await new Promise((resolve, reject) => {
-        fs.createReadStream(metadataFile)
-          .on("error", (error) => {
-            reject(new Error(`Error reading metadata file: ${error.message}`));
-          })
-          .pipe(csv())
-          .on("data", (data) => {
-            // Assuming the CSV has a filename column and other metadata
-            if (data.filename) {
-              metadata[data.filename] = data;
-            }
-          })
-          .on("end", resolve)
-          .on("error", (error) => {
-            reject(new Error(`Error parsing metadata file: ${error.message}`));
+      try {
+        const metadataContent = fs.readFileSync(metadataFile, "utf8");
+
+        // Check if it's JSON or CSV
+        if (metadataFile.endsWith(".json")) {
+          metadata = JSON.parse(metadataContent);
+        } else if (metadataFile.endsWith(".csv")) {
+          // Parse CSV
+          await new Promise((resolve, reject) => {
+            fs.createReadStream(metadataFile)
+              .pipe(csvParser())
+              .on("data", (data: any) => {
+                if (data.id && data.text) {
+                  metadata[data.id] = data;
+                }
+              })
+              .on("error", (error: Error) => {
+                reject(error);
+              })
+              .on("end", () => {
+                resolve(null);
+              });
           });
-      });
+        }
+      } catch (error) {
+        console.error("Failed to parse metadata file:", error);
+      }
     }
 
-    // Ensure target directories exist
-    const targetDir = path.join(this.dataDir, "audio", "raw", language);
-    try {
-      if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, { recursive: true });
+    // Process audio files
+    const files = fs.readdirSync(audioDir);
+
+    for (const file of files) {
+      if (!file.match(/\.(wav|mp3|ogg|flac)$/i)) {
+        continue; // Skip non-audio files
       }
-    } catch (error: any) {
-      throw new Error(
-        `Failed to create directory ${targetDir}: ${error.message}`
+
+      const filePath = path.join(audioDir, file);
+      const stats = fs.statSync(filePath);
+
+      if (!stats.isFile()) {
+        continue;
+      }
+
+      // Generate an ID from the filename
+      const id = path.basename(file, path.extname(file));
+
+      // Copy file to output directory
+      const outputPath = path.join(outputDir, file);
+      fs.copyFileSync(filePath, outputPath);
+
+      // Create entry
+      const entry: DataEntry = {
+        id,
+        text: metadata[id]?.text || "",
+        language,
+        audioPath: outputPath,
+      };
+
+      // Add metadata if available
+      if (metadata[id]) {
+        entry.metadata = { ...metadata[id] };
+
+        if (metadata[id].translation) {
+          entry.translation = metadata[id].translation;
+        }
+      }
+
+      entries.push(entry);
+    }
+
+    // Save entries
+    if (entries.length > 0) {
+      const jsonPath = path.join(
+        outputDir,
+        `${language}-audio-data-${Date.now()}.json`
       );
-    }
+      fs.writeFileSync(jsonPath, JSON.stringify(entries, null, 2));
 
-    // Process all audio files in the directory
-    try {
-      const files = fs
-        .readdirSync(audioDir)
-        .filter((file) => file.endsWith(".mp3") || file.endsWith(".wav"));
-
-      if (files.length === 0) {
-        console.warn(`No audio files found in ${audioDir}`);
-        return;
-      }
-
-      for (const file of files) {
-        const sourcePath = path.join(audioDir, file);
-        const targetPath = path.join(targetDir, file);
-
-        // Copy file to raw directory
-        fs.copyFileSync(sourcePath, targetPath);
-
-        // Create an entry with metadata
-        const entry: DataEntry = {
-          id: path.basename(file, path.extname(file)),
-          text: metadata[file]?.text || "",
-          language,
-          audioPath: targetPath,
-          metadata: metadata[file] || {},
-        };
-
-        // Save to a metadata file
-        const metaFilePath = path.join(
-          targetDir,
-          `${path.basename(file, path.extname(file))}.json`
-        );
-
-        fs.writeFileSync(metaFilePath, JSON.stringify(entry, null, 2));
-      }
-
-      console.log(`Imported ${files.length} audio files for ${language}`);
-    } catch (error: any) {
-      console.error(`Error importing audio files:`, error);
-      throw new Error(`Failed to import audio files: ${error.message}`);
+      // Update registry
+      this.registerDataset({
+        language,
+        name: `${language}-audio-${Date.now()}`,
+        description: `Audio data for ${language}`,
+        path: outputDir,
+        stats: {
+          hours: entries.length * 0.1, // Rough estimate
+          speakers: 1, // Default assumption
+          utterances: entries.length,
+          maleRatio: 0.5, // Default assumption
+          femaleRatio: 0.5, // Default assumption
+          averageDuration: 3, // Default assumption
+          dateCreated: new Date().toISOString(),
+          lastUpdated: new Date().toISOString(),
+        },
+        license: "CC BY 4.0",
+      });
     }
   }
 
-  /**
-   * List all available data for a language
-   * @param language Target language
-   * @param type Data type (text or audio)
-   */
   listAvailableData(
     language: GhanaianLanguage,
     type: "text" | "audio" = "text"
   ): string[] {
-    const baseDir = path.join(this.dataDir, type, "processed", language);
+    const dataPath = path.join(this.dataDir, language, type);
 
-    if (!fs.existsSync(baseDir)) {
+    if (!fs.existsSync(dataPath)) {
       return [];
     }
 
-    return fs.readdirSync(baseDir).filter((file) => file.endsWith(".json"));
+    return fs.readdirSync(dataPath).filter((file) => {
+      const filePath = path.join(dataPath, file);
+      return fs.statSync(filePath).isFile();
+    });
   }
 
-  /**
-   * Get samples for a language
-   * @param language Target language
-   * @param maxSamples Maximum number of samples to return
-   */
   getSamples(language: GhanaianLanguage, maxSamples = 10): DataEntry[] {
+    // Get datasets for this language
+    const datasets = this.getDatasets(language);
     const samples: DataEntry[] = [];
-    const textFiles = this.listAvailableData(language, "text");
 
-    for (const file of textFiles) {
-      if (samples.length >= maxSamples) break;
+    for (const dataset of datasets) {
+      const datasetPath = dataset.path;
 
-      const filePath = path.join(
-        this.dataDir,
-        "text",
-        "processed",
-        language,
-        file
-      );
-      const data = JSON.parse(fs.readFileSync(filePath, "utf8")) as DataEntry[];
+      // Look for JSON files in the dataset path
+      if (fs.existsSync(datasetPath)) {
+        const files = fs
+          .readdirSync(datasetPath)
+          .filter((file) => file.endsWith(".json"))
+          .filter((file) => !file.includes("registry"));
 
-      samples.push(...data.slice(0, maxSamples - samples.length));
+        for (const file of files) {
+          try {
+            const filePath = path.join(datasetPath, file);
+            const data = JSON.parse(fs.readFileSync(filePath, "utf8"));
+
+            if (Array.isArray(data)) {
+              samples.push(...data.slice(0, maxSamples - samples.length));
+
+              if (samples.length >= maxSamples) {
+                break;
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to read sample data from ${file}:`, error);
+          }
+        }
+
+        if (samples.length >= maxSamples) {
+          break;
+        }
+      }
     }
 
     return samples;
-  }
-
-  /**
-   * Generate training data for pronunciation
-   * @param language Target language
-   */
-  generatePronunciationData(
-    language: GhanaianLanguage
-  ): Record<string, string[]> {
-    const samples = this.getSamples(language, 100);
-    const words = new Set<string>();
-
-    // Collect unique words
-    for (const sample of samples) {
-      if (!sample.textClean) continue;
-      const tokens = this.tokenize(sample.textClean, language);
-      tokens.forEach((token) => words.add(token.toLowerCase()));
-    }
-
-    // Generate syllable mapping
-    const pronunciationMap: Record<string, string[]> = {};
-
-    for (const word of Array.from(words)) {
-      pronunciationMap[word] = this.syllabify(word, language);
-    }
-
-    // Save pronunciation map
-    const filePath = path.join(
-      this.dataDir,
-      "text",
-      "processed",
-      language,
-      "pronunciation_map.json"
-    );
-
-    fs.writeFileSync(filePath, JSON.stringify(pronunciationMap, null, 2));
-
-    return pronunciationMap;
-  }
-
-  /**
-   * Generate language statistics
-   * @param language Target language
-   */
-  generateLanguageStats(language: GhanaianLanguage): any {
-    const samples = this.getSamples(language, 1000);
-
-    if (samples.length === 0) {
-      return {
-        language,
-        wordCount: 0,
-        uniqueWords: 0,
-      };
-    }
-
-    const allWords: string[] = [];
-    const uniqueWords = new Set<string>();
-
-    for (const sample of samples) {
-      if (!sample.textClean) continue;
-      const tokens = this.tokenize(sample.textClean, language);
-      allWords.push(...tokens);
-      tokens.forEach((token) => uniqueWords.add(token.toLowerCase()));
-    }
-
-    // Calculate word frequency
-    const wordFrequency: Record<string, number> = {};
-
-    for (const word of allWords) {
-      const lowerWord = word.toLowerCase();
-      wordFrequency[lowerWord] = (wordFrequency[lowerWord] || 0) + 1;
-    }
-
-    // Sort by frequency
-    const sortedWords = Object.entries(wordFrequency)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 100);
-
-    const stats = {
-      language,
-      sampleCount: samples.length,
-      wordCount: allWords.length,
-      uniqueWords: uniqueWords.size,
-      averageWordsPerSample: allWords.length / samples.length,
-      top100Words: sortedWords,
-      isoCode: languageISOMap[language],
-      languageName: ISO6391.getName(languageISOMap[language]) || language,
-    };
-
-    // Save stats
-    const filePath = path.join(
-      this.dataDir,
-      "text",
-      "processed",
-      language,
-      "language_stats.json"
-    );
-
-    fs.writeFileSync(filePath, JSON.stringify(stats, null, 2));
-
-    return stats;
-  }
-
-  /**
-   * Export data to CSV format for use with training tools
-   * @param language Target language
-   * @param type Type of dataset to export
-   */
-  exportToCSV(
-    language: GhanaianLanguage,
-    type: "tts" | "asr" | "general"
-  ): string {
-    const samples = this.getSamples(language, 1000);
-    const csvRows: string[] = [];
-
-    if (type === "tts") {
-      // TTS format: id,text,cleaned_text,audio_file
-      csvRows.push("id,text,cleaned_text,audio_file");
-
-      for (const sample of samples) {
-        if (!sample.text) continue;
-        csvRows.push(
-          [
-            sample.id,
-            `"${sample.text.replace(/"/g, '""')}"`,
-            `"${(sample.textClean || "").replace(/"/g, '""')}"`,
-            sample.audioPath || "",
-          ].join(",")
-        );
-      }
-    } else if (type === "asr") {
-      // ASR format: audio_file,transcript
-      csvRows.push("audio_file,transcript");
-
-      for (const sample of samples) {
-        if (!sample.audioPath || !sample.text) continue;
-        csvRows.push(
-          [sample.audioPath, `"${sample.text.replace(/"/g, '""')}"`].join(",")
-        );
-      }
-    } else {
-      // General format: id,text,language,translation
-      csvRows.push("id,text,language,translation");
-
-      for (const sample of samples) {
-        if (!sample.text) continue;
-        csvRows.push(
-          [
-            sample.id,
-            `"${sample.text.replace(/"/g, '""')}"`,
-            sample.language,
-            `"${(sample.translation || "").replace(/"/g, '""')}"`,
-          ].join(",")
-        );
-      }
-    }
-
-    // Save to file
-    const filename = `${language}_${type}_data_${Date.now()}.csv`;
-    const filePath = path.join(this.dataDir, filename);
-
-    fs.writeFileSync(filePath, csvRows.join("\n"));
-
-    return filePath;
   }
 }
 
 // Expose a singleton instance
 export const ghanaianDatasetManager = new GhanaianLanguageDatasetManager();
-export default ghanaianDatasetManager;

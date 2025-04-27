@@ -3,7 +3,13 @@ import { gaConfig } from "../locales/ga";
 import { eweConfig } from "../locales/ewe";
 import { hausaConfig } from "../locales/hausa";
 
-export type GhanaianLanguage = "twi" | "ga" | "ewe" | "hausa" | "english";
+export type GhanaianLanguage =
+  | "twi"
+  | "ga"
+  | "ewe"
+  | "dagbani"
+  | "hausa"
+  | "english";
 
 interface LanguageConfig {
   code: string;
@@ -65,7 +71,33 @@ const languageConfigs: Record<GhanaianLanguage, LanguageConfig> = {
       repeat: "Please repeat that",
     },
   },
-};
+
+  dagbani: {
+    code: "dag",
+    name: "Dagbani",
+    nativeName: "Dagbani",
+    speechRecognition: {
+      code: "en-GH",
+      fallback: "en-US",
+    },
+    textToSpeech: {
+      code: "en-GH",
+      fallback: "en-US",
+      voicePreferences: ["en-US-Standard-D", "en-US-Standard-B"],
+    },
+    commands: {
+      help: "I need help",
+      yes: "Yes",
+      no: "No",
+      stop: "Stop",
+      emergency: "Emergency",
+    },
+    conversations: {
+      greeting: "Desiba",
+      thanks: "Naa",
+      goodbye: "Naa nkaaye",
+    },
+  },};
 
 class LanguageService {
   private currentLanguage: GhanaianLanguage = "english";

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { GhanaianLanguage } from "../context/LanguageContext";
 import ApiService from "./ApiService";
 import GhanaianTTS from "./GhanaianTTS"; // Import our custom TTS service
+import ESPnetIntegration from "../utils/ESPnetIntegration";
 
 // Map Ghanaian languages to the closest available voices
 const languageMap: Record<GhanaianLanguage, string> = {
@@ -10,6 +11,7 @@ const languageMap: Record<GhanaianLanguage, string> = {
   ga: "en-GH", // Fallback
   ewe: "en-GH", // Fallback
   hausa: "fr", // Closest tonal language available as fallback
+  dagbani: "en-GH", // Fallback for Dagbani
 };
 
 // Phonetic replacements for better pronunciation of Ghanaian languages
@@ -58,6 +60,15 @@ const phoneticReplacements: Record<GhanaianLanguage, Record<string, string>> = {
     nagode: "nah goh deh", // Thank you
   },
   english: {}, // No replacements needed
+  dagbani: {
+    ɛ: "eh", // Open e sound
+    ɔ: "aw", // Open o sound
+    ŋ: "ng", // Velar nasal
+    ɣ: "gh", // Voiced velar fricative
+    // Common words
+    desiba: "deh-see-bah", // Welcome
+    npuhimiya: "n-poo-hee-mee-yah", // Thank you
+  },
 };
 
 // Tone/pitch adjustments for tonal languages
@@ -112,17 +123,38 @@ export const useTextToSpeech = (
   const [selectedVoice, setSelectedVoice] =
     useState<SpeechSynthesisVoice | null>(null);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(
+    null
+  );
+  // Store current language in a ref to avoid stale closure issues
+  const currentLanguageRef = useRef<GhanaianLanguage>(language);
 
   // Ref for audio sources to stop properly
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
+  // Update the current language ref when the language prop changes
+  useEffect(() => {
+    currentLanguageRef.current = language;
+    // Set the language in our GhanaianTTS service
+    GhanaianTTS.setLanguage(language);
+
+    // Try to find an appropriate voice for new language
+    if (voices.length > 0) {
+      const langCode = languageMap[language];
+      const matchingVoice = voices.find(
+        (voice) =>
+          voice.lang.startsWith(langCode) ||
+          (language !== "english" && voice.lang.startsWith("en"))
+      );
+
+      if (matchingVoice) {
+        setSelectedVoice(matchingVoice);
+      }
+    }
+  }, [language, voices]);
+
   // Check if browser supports TTS
   const browserSupportsTTS = "speechSynthesis" in window;
-
-  // Set the language in our GhanaianTTS service
-  useEffect(() => {
-    GhanaianTTS.setLanguage(language);
-  }, [language]);
 
   // Monitor online/offline status
   useEffect(() => {
@@ -146,14 +178,49 @@ export const useTextToSpeech = (
       }
     };
 
+    // Listen for custom language change events from our LanguageContext
+    const handleLanguageChange = (event: Event) => {
+      if (event instanceof CustomEvent && event.detail?.language) {
+        const newLanguage = event.detail.language as GhanaianLanguage;
+        if (newLanguage !== currentLanguageRef.current) {
+          // Update our reference
+          currentLanguageRef.current = newLanguage;
+          // Update GhanaianTTS service
+          GhanaianTTS.setLanguage(newLanguage);
+
+          // Try to find a matching voice
+          if (voices.length > 0) {
+            const langCode = languageMap[newLanguage];
+            const matchingVoice = voices.find(
+              (voice) =>
+                voice.lang.startsWith(langCode) ||
+                (newLanguage !== "english" && voice.lang.startsWith("en"))
+            );
+
+            if (matchingVoice) {
+              setSelectedVoice(matchingVoice);
+            }
+          }
+
+          // Cancel any current speech
+          if (browserSupportsTTS) {
+            window.speechSynthesis.cancel();
+            setIsSpeaking(false);
+          }
+        }
+      }
+    };
+
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
+    window.addEventListener("app-language-change", handleLanguageChange);
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("app-language-change", handleLanguageChange);
     };
-  }, [browserSupportsTTS]);
+  }, [browserSupportsTTS, voices]);
 
   // Get available voices for a specific language
   const getAvailableVoices = useCallback(
@@ -206,6 +273,15 @@ export const useTextToSpeech = (
   useEffect(() => {
     initVoices();
 
+    // Initialize audio element
+    const audio = new Audio();
+    audio.addEventListener("ended", () => setIsSpeaking(false));
+    audio.addEventListener("error", (e) => {
+      console.error("Audio playback error:", e);
+      setIsSpeaking(false);
+    });
+    setAudioElement(audio);
+
     // Load cached utterances from localStorage
     try {
       const savedCache = localStorage.getItem("cachedUtterances");
@@ -236,486 +312,221 @@ export const useTextToSpeech = (
     } catch (error) {
       console.error("Failed to load cached utterances:", error);
     }
+
+    return () => {
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.removeEventListener("ended", () => setIsSpeaking(false));
+        audioElement.removeEventListener("error", () => setIsSpeaking(false));
+      }
+    };
   }, [initVoices]);
 
-  // Re-initialize when language changes
-  useEffect(() => {
-    // If we have voices already, try to find a new matching voice for the changed language
-    if (voices.length > 0) {
-      const langCode = languageMap[language];
-      const matchingVoice = voices.find(
-        (voice) =>
-          voice.lang.startsWith(langCode) ||
-          (language === "twi" && voice.lang.startsWith("en"))
-      );
+  // Use ESPnet API for TTS
+  const useESPnetTTS = async (
+    text: string,
+    language: GhanaianLanguage,
+    rate: number = 1.0,
+    pitch: number = 1.0
+  ): Promise<string> => {
+    if (!text) return "";
 
-      if (matchingVoice) {
-        setSelectedVoice(matchingVoice);
-      }
-    } else {
-      // If no voices loaded yet, initialize them
-      initVoices();
-    }
-  }, [language, voices, initVoices]);
-
-  // Apply phonetic replacements for better pronunciation
-  const applyPhoneticReplacements = useCallback(
-    (text: string, lang: GhanaianLanguage): string => {
-      const replacements = phoneticReplacements[lang];
-      if (!replacements || Object.keys(replacements).length === 0) {
-        return text;
-      }
-
+    try {
+      // Apply phonetic replacements for better pronunciation
       let processedText = text;
-
-      // Process whole words first
-      const words = text.split(/\s+/);
-      const processedWords = words.map((word) => {
-        return replacements[word.toLowerCase()] || word;
-      });
-      processedText = processedWords.join(" ");
-
-      // Then do character replacements
-      Object.entries(replacements).forEach(([pattern, replacement]) => {
-        // Skip full word replacements (already handled)
-        if (pattern.includes(" ") || pattern.length > 3) return;
-
-        processedText = processedText.replace(
-          new RegExp(pattern, "gi"),
-          replacement
-        );
-      });
-
-      return processedText;
-    },
-    []
-  );
-
-  // Play audio from ArrayBuffer
-  const playAudioBuffer = useCallback(
-    async (audioData: ArrayBuffer): Promise<void> => {
-      if (!audioContext) {
-        try {
-          audioContext = new AudioContext();
-        } catch (error) {
-          console.error("Failed to create AudioContext:", error);
-          return;
-        }
+      const replacements = phoneticReplacements[language];
+      if (replacements) {
+        Object.entries(replacements).forEach(([key, value]) => {
+          const regex = new RegExp(key, "gi");
+          processedText = processedText.replace(regex, value);
+        });
       }
+
+      // Use ESPnet integration utility
+      return await ESPnetIntegration.synthesizeSpeech({
+        text: processedText,
+        language,
+        speed: rate,
+        pitch,
+        volume: 1.0,
+        format: "mp3",
+      });
+    } catch (error) {
+      console.error("Error using ESPnet TTS:", error);
+      throw error;
+    }
+  };
+
+  // Speak function
+  const speak = useCallback(
+    async (text: string, rate: number = 1.0, pitch: number = 1.0) => {
+      if (!text || isSpeaking) return;
+
+      // Stop any previous speech
+      stop();
 
       try {
-        // Stop any currently playing audio
-        if (audioSourceRef.current) {
-          audioSourceRef.current.stop();
-          audioSourceRef.current = null;
-        }
-
         setIsSpeaking(true);
 
-        // Decode the audio data
-        const audioBuffer = await audioContext.decodeAudioData(audioData);
+        // Try to use ESPnet TTS if online and available
+        if (isOnline && ESPnetIntegration.isESPnetAvailable()) {
+          try {
+            const audioUrl = await useESPnetTTS(text, language, rate, pitch);
 
-        // Create and connect source node
-        const source = audioContext.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(audioContext.destination);
+            if (audioElement) {
+              audioElement.src = audioUrl;
+              await audioElement.play();
+            }
+            return;
+          } catch (error) {
+            console.warn(
+              "Failed to use ESPnet TTS, falling back to browser TTS:",
+              error
+            );
+            // Fall back to browser TTS on error
+          }
+        }
 
-        // Set up event handlers
-        source.onended = () => {
+        // If offline or ESPnet failed, try cached audio
+        const cached = cachedUtterances.find(
+          (item) => item.text === text && item.language === language
+        );
+
+        if (cached && cached.audio.byteLength > 0 && audioContext) {
+          try {
+            // Play from cache
+            const audioBuffer = await audioContext.decodeAudioData(
+              cached.audio.slice(0)
+            );
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(audioContext.destination);
+
+            // Store reference for stopping later
+            audioSourceRef.current = source;
+
+            source.start(0);
+            source.onended = () => setIsSpeaking(false);
+            return;
+          } catch (error) {
+            console.error("Error playing cached audio:", error);
+          }
+        }
+
+        // As last resort, use browser TTS
+        if (browserSupportsTTS) {
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.rate = rate;
+          utterance.pitch = pitch || tonalAdjustments[language] || 1.0;
+
+          if (selectedVoice) {
+            utterance.voice = selectedVoice;
+          }
+
+          utterance.onend = () => setIsSpeaking(false);
+          utterance.onerror = () => setIsSpeaking(false);
+
+          window.speechSynthesis.speak(utterance);
+        } else {
+          // If everything fails
+          console.error("No TTS method available");
           setIsSpeaking(false);
-          audioSourceRef.current = null;
-        };
-
-        // Store for later stopping if needed
-        audioSourceRef.current = source;
-
-        // Start playback
-        source.start();
+        }
       } catch (error) {
-        console.error("Failed to play audio buffer:", error);
+        console.error("Error in speak function:", error);
         setIsSpeaking(false);
       }
     },
-    []
+    [
+      language,
+      isSpeaking,
+      isOnline,
+      audioElement,
+      browserSupportsTTS,
+      selectedVoice,
+    ]
   );
 
-  // Preload a phrase into the cache
+  // Stop function
+  const stop = useCallback(() => {
+    if (audioElement) {
+      audioElement.pause();
+      audioElement.currentTime = 0;
+    }
+
+    if (audioSourceRef.current) {
+      try {
+        audioSourceRef.current.stop();
+        audioSourceRef.current.disconnect();
+        audioSourceRef.current = null;
+      } catch (e) {
+        console.error("Error stopping audio source:", e);
+      }
+    }
+
+    if (browserSupportsTTS) {
+      window.speechSynthesis.cancel();
+    }
+
+    setIsSpeaking(false);
+  }, [audioElement, browserSupportsTTS]);
+
+  // Preload function to cache frequently used phrases
   const preloadPhrase = useCallback(
     async (text: string): Promise<boolean> => {
-      if (!text || !isOnline || text.length > 200) return false;
+      if (!text || !isOnline) return false;
 
       try {
-        // For non-English languages, use our specialized GhanaianTTS service
-        if (language !== "english") {
-          await GhanaianTTS.preloadPhrases([text], language);
+        // Check if already cached
+        const existing = cachedUtterances.find(
+          (item) => item.text === text && item.language === language
+        );
+
+        if (existing && existing.audio.byteLength > 0) {
+          // Update timestamp to keep it in cache longer
+          existing.timestamp = Date.now();
           return true;
         }
 
-        // Check if already cached with audio
-        const existingUtterance = cachedUtterances.find(
-          (item) =>
-            item.text === text &&
-            item.language === language &&
-            item.audio.byteLength > 0
-        );
+        // Generate speech and cache it
+        const audioUrl = await useESPnetTTS(text, language);
+        const response = await fetch(audioUrl);
+        const audioData = await response.arrayBuffer();
 
-        if (existingUtterance) return true;
+        // Add to cache
+        cachedUtterances.push({
+          text,
+          language,
+          audio: audioData,
+          timestamp: Date.now(),
+        });
 
-        // Try to get custom synthesized audio for this language
-        const response = await fetch(
-          `/api/synthesize?text=${encodeURIComponent(
-            text
-          )}&language=${language}`
-        );
+        // Limit cache size (keep most recent 50 items)
+        if (cachedUtterances.length > 50) {
+          cachedUtterances.sort((a, b) => b.timestamp - a.timestamp);
+          cachedUtterances = cachedUtterances.slice(0, 50);
+        }
 
-        if (response.ok) {
-          const audioData = await response.arrayBuffer();
-
-          // Add to cache
-          const newCachedItem: CachedUtterance = {
-            text,
-            language,
-            audio: audioData,
-            timestamp: Date.now(),
-          };
-
-          // Update cache
-          const existingIndex = cachedUtterances.findIndex(
-            (item) => item.text === text && item.language === language
+        // Save to localStorage
+        try {
+          localStorage.setItem(
+            "cachedUtterances",
+            JSON.stringify(cachedUtterances)
           );
-
-          if (existingIndex >= 0) {
-            cachedUtterances[existingIndex] = newCachedItem;
-          } else {
-            if (cachedUtterances.length > 30) {
-              // Remove oldest items
-              cachedUtterances.sort((a, b) => a.timestamp - b.timestamp);
-              cachedUtterances = cachedUtterances.slice(5);
-            }
-            cachedUtterances.push(newCachedItem);
-          }
-
-          // Update storage (exclude audio data)
-          try {
-            localStorage.setItem(
-              "cachedUtterances",
-              JSON.stringify(
-                cachedUtterances.map((item) => ({
-                  text: item.text,
-                  language: item.language,
-                  timestamp: item.timestamp,
-                }))
-              )
-            );
-          } catch (error) {
-            console.error("Failed to save cache:", error);
-          }
-
-          return true;
+        } catch (e) {
+          console.warn("Failed to save cache to localStorage:", e);
         }
 
-        return false;
+        return true;
       } catch (error) {
-        console.error("Failed to preload phrase:", error);
+        console.error("Error preloading phrase:", error);
         return false;
       }
     },
     [language, isOnline]
   );
 
-  // Speak function with enhanced connection handling
-  const speak = useCallback(
-    async (text: string, rate = 1.0, pitch = 1.0) => {
-      if (!text) return;
-
-      // For Ghanaian languages, use our specialized TTS service
-      if (language !== "english") {
-        try {
-          setIsSpeaking(true);
-
-          await GhanaianTTS.speak(text, {
-            language: language,
-            rate: rate,
-            pitch: pitch,
-          });
-
-          setIsSpeaking(false);
-          return;
-        } catch (error) {
-          console.error(
-            "GhanaianTTS failed, falling back to browser TTS:",
-            error
-          );
-          // Continue with browser TTS as fallback
-        }
-      }
-
-      // Try cached audio first
-      const cachedUtterance = cachedUtterances.find(
-        (item) =>
-          item.text === text &&
-          item.language === language &&
-          item.audio.byteLength > 0
-      );
-
-      // If we have cached audio, use it
-      if (
-        cachedUtterance &&
-        cachedUtterance.audio &&
-        cachedUtterance.audio.byteLength > 0
-      ) {
-        try {
-          await playAudioBuffer(cachedUtterance.audio);
-          // Update timestamp to keep this utterance fresh
-          cachedUtterance.timestamp = Date.now();
-          return;
-        } catch (error) {
-          console.error("Failed to play cached audio:", error);
-          // Fall back to synthesized speech
-        }
-      }
-
-      // Handle offline mode
-      if (!isOnline) {
-        if (cachedUtterance) {
-          console.log("Using cached utterance in offline mode:", text);
-          try {
-            await playAudioBuffer(cachedUtterance.audio);
-            return;
-          } catch (error) {
-            console.error(
-              "Failed to play cached audio in offline mode:",
-              error
-            );
-          }
-        } else {
-          console.log(
-            "Cannot speak in offline mode - utterance not cached:",
-            text
-          );
-          // Notify user
-          if (
-            "Notification" in window &&
-            Notification.permission === "granted"
-          ) {
-            new Notification("Offline Speech", {
-              body: `Using cached speech for: ${text.substring(0, 30)}...`,
-            });
-          }
-          return;
-        }
-      }
-
-      // Try to get custom synthesized audio for Ghanaian languages
-      if (language !== "english") {
-        try {
-          const response = await fetch(
-            `/api/synthesize?text=${encodeURIComponent(
-              text
-            )}&language=${language}`
-          );
-
-          if (response.ok) {
-            const audioData = await response.arrayBuffer();
-
-            // Play the audio
-            await playAudioBuffer(audioData);
-
-            // Cache the audio
-            if (text.length < 100) {
-              const newCachedItem: CachedUtterance = {
-                text,
-                language,
-                audio: audioData,
-                timestamp: Date.now(),
-              };
-
-              const existingIndex = cachedUtterances.findIndex(
-                (item) => item.text === text && item.language === language
-              );
-
-              if (existingIndex >= 0) {
-                cachedUtterances[existingIndex] = newCachedItem;
-              } else {
-                if (cachedUtterances.length > 30) {
-                  // Sort by timestamp and remove oldest
-                  cachedUtterances.sort((a, b) => a.timestamp - b.timestamp);
-                  cachedUtterances = cachedUtterances.slice(10);
-                }
-                cachedUtterances.push(newCachedItem);
-              }
-
-              try {
-                localStorage.setItem(
-                  "cachedUtterances",
-                  JSON.stringify(
-                    cachedUtterances.map((item) => ({
-                      text: item.text,
-                      language: item.language,
-                      timestamp: item.timestamp,
-                    }))
-                  )
-                );
-              } catch (error) {
-                console.error("Failed to cache utterance:", error);
-              }
-            }
-
-            return;
-          }
-        } catch (error) {
-          console.warn(
-            "Custom synthesis failed, falling back to browser TTS:",
-            error
-          );
-          // Continue with browser TTS
-        }
-      }
-
-      // Use browser's Web Speech API as fallback
-      if (!browserSupportsTTS) return;
-
-      // Apply phonetic replacements for better pronunciation
-      const processedText = applyPhoneticReplacements(text, language);
-
-      const utterance = new SpeechSynthesisUtterance(processedText);
-      utterance.rate = rate;
-
-      // Adjust pitch for tonal languages
-      const tonalAdjustment = tonalAdjustments[language] || 1.0;
-      utterance.pitch = pitch * tonalAdjustment;
-
-      if (selectedVoice) {
-        utterance.voice = selectedVoice;
-      } else {
-        utterance.lang = languageMap[language];
-      }
-
-      // Add retries for failed speech attempts
-      let retryCount = 0;
-      const maxRetries = 3;
-
-      utterance.onstart = () => {
-        setIsSpeaking(true);
-      };
-
-      utterance.onend = () => {
-        setIsSpeaking(false);
-      };
-
-      utterance.onerror = (event) => {
-        console.error("TTS Error:", event);
-
-        // Retry logic for network-related errors
-        if (retryCount < maxRetries && isOnline) {
-          console.log(
-            `Retrying speech synthesis (attempt ${
-              retryCount + 1
-            }/${maxRetries})...`
-          );
-          retryCount++;
-          setTimeout(() => {
-            window.speechSynthesis.speak(utterance);
-          }, 500); // Short delay before retry
-        } else {
-          setIsSpeaking(false);
-        }
-      };
-
-      // Cancel any ongoing speech
-      window.speechSynthesis.cancel();
-
-      // Speak the new utterance
-      window.speechSynthesis.speak(utterance);
-
-      // Cache the text version for future reference
-      if (!cachedUtterance && text.length < 100) {
-        const newCachedItem: CachedUtterance = {
-          text,
-          language,
-          audio: new ArrayBuffer(0),
-          timestamp: Date.now(),
-        };
-
-        if (cachedUtterances.length > 30) {
-          // Sort by timestamp and remove oldest
-          cachedUtterances.sort((a, b) => a.timestamp - b.timestamp);
-          cachedUtterances = cachedUtterances.slice(10);
-        }
-
-        cachedUtterances.push(newCachedItem);
-
-        try {
-          localStorage.setItem(
-            "cachedUtterances",
-            JSON.stringify(
-              cachedUtterances.map((item) => ({
-                text: item.text,
-                language: item.language,
-                timestamp: item.timestamp,
-              }))
-            )
-          );
-        } catch (error) {
-          console.error("Failed to cache utterance:", error);
-        }
-
-        // Try to preload the audio in the background for next time
-        if (isOnline && language !== "english") {
-          fetch(
-            `/api/synthesize?text=${encodeURIComponent(
-              text
-            )}&language=${language}`
-          )
-            .then((response) => {
-              if (response.ok) return response.arrayBuffer();
-              throw new Error("Failed to synthesize speech");
-            })
-            .then((audioData) => {
-              // Find the item we just cached and update its audio
-              const item = cachedUtterances.find(
-                (item) => item.text === text && item.language === language
-              );
-
-              if (item) {
-                item.audio = audioData;
-              }
-            })
-            .catch((error) => {
-              console.error("Background audio preload failed:", error);
-            });
-        }
-      }
-    },
-    [
-      browserSupportsTTS,
-      selectedVoice,
-      language,
-      isOnline,
-      applyPhoneticReplacements,
-      playAudioBuffer,
-    ]
-  );
-
-  // Stop speaking
-  const stop = useCallback(() => {
-    if (browserSupportsTTS) {
-      window.speechSynthesis.cancel();
-    }
-
-    // Also stop any audio buffer playback
-    if (audioSourceRef.current) {
-      try {
-        audioSourceRef.current.stop();
-      } catch (error) {
-        console.error("Error stopping audio source:", error);
-      }
-      audioSourceRef.current = null;
-    }
-
-    setIsSpeaking(false);
-  }, [browserSupportsTTS]);
-
+  // Return the API
   return {
     speak,
     stop,
@@ -729,3 +540,5 @@ export const useTextToSpeech = (
     getAvailableVoices,
   };
 };
+
+export default useTextToSpeech;

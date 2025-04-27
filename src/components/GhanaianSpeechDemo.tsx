@@ -1,192 +1,376 @@
-import React, { useState } from "react";
-import { useLanguage } from "../context/LanguageContext";
-import { useTextToSpeech } from "../services/TextToSpeechService";
-import type { GhanaianLanguage } from "../context/LanguageContext";
+import React, { useState, useEffect } from "react";
+import { useLanguage, GhanaianLanguage } from "../context/LanguageContext";
+import { useUserPreferences } from "../context/UserPreferencesContext";
+import { ttsService } from "../services/speech/TTSService";
+import { Volume2, ChevronDown, Star, Loader, Mic } from "lucide-react";
+
+// Sample phrases for each language
+const DEMO_PHRASES: Record<GhanaianLanguage, string[]> = {
+  twi: [
+    "Akwaaba (Welcome)",
+    "Me din de... (My name is...)",
+    "Wo ho te sɛn? (How are you?)",
+    "Medaase (Thank you)",
+    "Yɛbɛhyia bio (See you again)",
+  ],
+  ga: [
+    "Ogekoo (Welcome)",
+    "Mibii ji... (My name is...)",
+    "Te ofe? (How are you?)",
+    "Oyiwaladon (Thank you)",
+    "Wo miimɔ̃ ekoŋŋ (See you again)",
+  ],
+  ewe: [
+    "Woezɔ (Welcome)",
+    "Ŋkɔnye enye... (My name is...)",
+    "Efɔ̃ a? (How are you?)",
+    "Akpe (Thank you)",
+    "Míakpɔ mía nɔewo (See you again)",
+  ],
+  hausa: [
+    "Sannu (Welcome)",
+    "Sunana... (My name is...)",
+    "Yaya lafiya? (How are you?)",
+    "Na gode (Thank you)",
+    "Sai mun sadu (See you again)",
+  ],
+  english: [
+    "Welcome to TalkGhana",
+    "My name is...",
+    "How are you?",
+    "Thank you",
+    "See you again",
+  ],
+  dagbani: [
+    "Desiba! This is TalkGhana",
+    "I can help you communicate in Dagbani",
+    "Try saying some basic phrases",
+    "You can also type if you prefer"
+  ],
+};
 
 /**
  * Component to demonstrate enhanced Ghanaian language speech capabilities
  */
 const GhanaianSpeechDemo: React.FC = () => {
-  const { currentLanguage, t } = useLanguage();
-  const { speak, stop, isSpeaking, isOnline } =
-    useTextToSpeech(currentLanguage);
+  const { currentLanguage, setLanguage } = useLanguage();
+  const { preferences } = useUserPreferences();
+  const [selectedPhrase, setSelectedPhrase] = useState<string>("");
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [showDropdown, setShowDropdown] = useState<boolean>(false);
+  const [feedback, setFeedback] = useState<{
+    text: string;
+    type: "success" | "info" | "error";
+  } | null>(null);
+  const [isESPnetEnabled, setIsESPnetEnabled] = useState<boolean>(true);
+  const [qualityRating, setQualityRating] = useState<number | null>(null);
+  const [isComparing, setIsComparing] = useState<boolean>(false);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
-  // Demo phrases in different languages
-  const [demoText, setDemoText] = useState<string>("");
-  const [selectedLanguage, setSelectedLanguage] =
-    useState<GhanaianLanguage>(currentLanguage);
-  const [speechRate, setSpeechRate] = useState<number>(1.0);
-  const [speechPitch, setSpeechPitch] = useState<number>(1.0);
+  // Get TTS instance
+  const tts = ttsService;
 
-  // Example phrases for each language
-  const examplePhrases: Record<GhanaianLanguage, string[]> = {
-    twi: [
-      "Akwaaba, wo ho te sɛn?",
-      "Yɛfrɛ me TalkGhana. Mɛboa wo aka Twi.",
-      "Me da wo ase paa. Wo yɛ adwuma papa.",
-    ],
-    ga: [
-      "Ogekoo, te oyaa?",
-      "Atsɛ mi TalkGhana. Ma ye bo kɛ oona wiemo Ga.",
-      "Oyiwala don. Otsu nii jogbaŋŋ.",
-    ],
-    ewe: [
-      "Woezor, aleke nèfɔ?",
-      "Woyɔam be TalkGhana. Makpe de ŋuwò àƒo nu le Eʋegbe me.",
-      "Akpe. Èwɔ dɔ nyuie ŋutɔ.",
-    ],
-    hausa: [
-      "Sannu, yaya kake?",
-      "Sunana TalkGhana. Zan taimaka ka yi magana da Hausa.",
-      "Na gode. Kun yi aiki mai kyau sosai.",
-    ],
-    english: [
-      "Welcome, how are you?",
-      "My name is TalkGhana. I will help you speak in English.",
-      "Thank you. You are doing a great job.",
-    ],
+  // Set default selected phrase when language changes
+  useEffect(() => {
+    if (DEMO_PHRASES[currentLanguage]?.length > 0) {
+      setSelectedPhrase(DEMO_PHRASES[currentLanguage][0]);
+    } else {
+      setSelectedPhrase("");
+    }
+    // Reset feedback and ratings when language changes
+    setFeedback(null);
+    setQualityRating(null);
+  }, [currentLanguage]);
+
+  const playPhrase = async () => {
+    if (!selectedPhrase || isPlaying) return;
+
+    setIsPlaying(true);
+    setIsProcessing(true);
+    setFeedback({ text: "Processing speech...", type: "info" });
+
+    try {
+      // Use the TTSService to speak
+      await tts.speak({
+        text: selectedPhrase,
+        language: currentLanguage,
+        pitch: 1.0,
+        rate: 1.0,
+        volume: 1.0,
+      });
+
+      setFeedback({
+        text: "Speech synthesis complete",
+        type: "success",
+      });
+    } catch (error) {
+      console.error("Speech error:", error);
+      setFeedback({
+        text: "Failed to synthesize speech. Please try again.",
+        type: "error",
+      });
+    } finally {
+      setIsPlaying(false);
+      setIsProcessing(false);
+    }
   };
 
-  const handleSpeak = () => {
-    if (isSpeaking) {
-      stop();
-      return;
-    }
+  const compareWith = async (useESPnet: boolean) => {
+    setIsComparing(true);
+    setIsProcessing(true);
 
-    if (demoText) {
-      speak(demoText, speechRate, speechPitch);
+    try {
+      if (useESPnet) {
+        setFeedback({ text: "Using advanced synthesis...", type: "info" });
+        await tts.speak({
+          text: selectedPhrase,
+          language: currentLanguage,
+          pitch: 1.2, // Slightly different pitch for comparison
+          rate: 1.0,
+          volume: 1.0,
+        });
+      } else {
+        setFeedback({ text: "Using standard TTS...", type: "info" });
+        await tts.speak({
+          text: selectedPhrase,
+          language: currentLanguage,
+          pitch: 1.0,
+          rate: 1.0,
+          volume: 1.0,
+        });
+      }
+    } catch (error) {
+      console.error("Speech comparison error:", error);
+    } finally {
+      setIsComparing(false);
+      setIsProcessing(false);
+      setFeedback(null);
     }
   };
 
-  const handleSelectPhrase = (phrase: string) => {
-    setDemoText(phrase);
+  const handleRateQuality = async (rating: number) => {
+    setQualityRating(rating);
+    setIsProcessing(true);
+
+    try {
+      // In a real app, we would submit feedback to a server
+      // For now, we'll just simulate success
+      setFeedback({
+        text: "Thank you for your feedback! This helps improve our models.",
+        type: "success",
+      });
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      setFeedback({
+        text: "Error submitting feedback.",
+        type: "error",
+      });
+    } finally {
+      setIsProcessing(false);
+      // Clear feedback message after 3 seconds
+      setTimeout(() => {
+        setFeedback(null);
+      }, 3000);
+    }
   };
 
   return (
-    <div className="p-4 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">
-        {t("Enhanced Ghanaian Speech")}
-      </h2>
-
-      {/* Language selector */}
-      <div className="mb-4">
-        <label className="block text-gray-700 mb-2">
-          {t("Select Language")}
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {(["twi", "ga", "ewe", "hausa", "english"] as GhanaianLanguage[]).map(
-            (lang) => (
-              <button
-                key={lang}
-                onClick={() => setSelectedLanguage(lang)}
-                className={`px-3 py-1 rounded-full text-sm ${
-                  selectedLanguage === lang
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-800"
-                }`}
-              >
-                {lang.charAt(0).toUpperCase() + lang.slice(1)}
-              </button>
-            )
-          )}
-        </div>
-      </div>
-
-      {/* Example phrases */}
-      <div className="mb-4">
-        <label className="block text-gray-700 mb-2">
-          {t("Example Phrases")}
-        </label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {examplePhrases[selectedLanguage].map((phrase, index) => (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex-1">
+          <div className="relative">
             <button
-              key={index}
-              onClick={() => handleSelectPhrase(phrase)}
-              className="text-left px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded text-sm"
+              onClick={() => setShowDropdown(!showDropdown)}
+              className={`w-full flex justify-between items-center px-4 py-2 rounded-lg border ${
+                preferences.highContrast
+                  ? "bg-gray-800 border-gray-700 text-white"
+                  : "bg-white border-gray-300"
+              }`}
+              aria-haspopup="listbox"
+              aria-expanded={showDropdown}
             >
-              {phrase}
+              <span className="truncate">
+                {selectedPhrase || "Select a phrase"}
+              </span>
+              <ChevronDown size={16} />
             </button>
-          ))}
+
+            {showDropdown && (
+              <ul
+                className={`absolute z-10 w-full mt-1 rounded-lg shadow-lg ${
+                  preferences.highContrast
+                    ? "bg-gray-800 border border-gray-700"
+                    : "bg-white border border-gray-200"
+                }`}
+                role="listbox"
+              >
+                {DEMO_PHRASES[currentLanguage].map((phrase, index) => (
+                  <li
+                    key={index}
+                    onClick={() => {
+                      setSelectedPhrase(phrase);
+                      setShowDropdown(false);
+                    }}
+                    className={`px-4 py-2 cursor-pointer ${
+                      preferences.highContrast
+                        ? "hover:bg-gray-700"
+                        : "hover:bg-gray-100"
+                    } ${
+                      phrase === selectedPhrase
+                        ? preferences.highContrast
+                          ? "bg-blue-800"
+                          : "bg-blue-100"
+                        : ""
+                    }`}
+                    role="option"
+                    aria-selected={phrase === selectedPhrase}
+                  >
+                    {phrase}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={playPhrase}
+            disabled={isPlaying || !selectedPhrase || isProcessing}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              isPlaying || !selectedPhrase || isProcessing
+                ? "bg-gray-400 cursor-not-allowed"
+                : preferences.highContrast
+                ? "bg-blue-700 hover:bg-blue-800"
+                : "bg-blue-500 hover:bg-blue-600"
+            } text-white`}
+            aria-label="Play selected phrase"
+          >
+            {isProcessing ? (
+              <Loader size={16} className="animate-spin" />
+            ) : (
+              <Volume2 size={16} />
+            )}
+            <span>{isPlaying ? "Playing..." : "Play"}</span>
+          </button>
         </div>
       </div>
 
-      {/* Text input */}
-      <div className="mb-4">
-        <label className="block text-gray-700 mb-2">{t("Custom Text")}</label>
-        <textarea
-          value={demoText}
-          onChange={(e) => setDemoText(e.target.value)}
-          className="w-full px-3 py-2 border rounded-md"
-          rows={3}
-          placeholder={t("Type or select text to speak")}
-        />
+      <div className="flex flex-wrap gap-2 mt-2">
+        {Object.keys(DEMO_PHRASES).map((lang) => (
+          <button
+            key={lang}
+            onClick={() => setLanguage(lang as GhanaianLanguage)}
+            className={`px-3 py-1 text-sm rounded-full ${
+              currentLanguage === lang
+                ? preferences.highContrast
+                  ? "bg-green-800 text-white"
+                  : "bg-green-100 text-green-800"
+                : preferences.highContrast
+                ? "bg-gray-700 text-gray-300"
+                : "bg-gray-200 text-gray-700"
+            }`}
+          >
+            {lang.charAt(0).toUpperCase() + lang.slice(1)}
+          </button>
+        ))}
       </div>
 
-      {/* Speech parameters */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <div>
-          <label className="block text-gray-700 mb-2">
-            {t("Speech Rate")}: {speechRate.toFixed(1)}
-          </label>
-          <input
-            type="range"
-            min="0.5"
-            max="2"
-            step="0.1"
-            value={speechRate}
-            onChange={(e) => setSpeechRate(parseFloat(e.target.value))}
-            className="w-full"
-          />
-        </div>
-        <div>
-          <label className="block text-gray-700 mb-2">
-            {t("Speech Pitch")}: {speechPitch.toFixed(1)}
-          </label>
-          <input
-            type="range"
-            min="0.5"
-            max="2"
-            step="0.1"
-            value={speechPitch}
-            onChange={(e) => setSpeechPitch(parseFloat(e.target.value))}
-            className="w-full"
-          />
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="flex gap-4">
-        <button
-          onClick={handleSpeak}
-          disabled={!demoText || (!isOnline && !navigator.onLine)}
-          className={`px-4 py-2 rounded-md ${
-            isSpeaking
-              ? "bg-red-600 hover:bg-red-700 text-white"
-              : "bg-blue-600 hover:bg-blue-700 text-white"
-          } ${
-            (!demoText || (!isOnline && !navigator.onLine)) &&
-            "opacity-50 cursor-not-allowed"
-          }`}
-        >
-          {isSpeaking ? t("Stop") : t("Speak")}
-        </button>
-
-        <button
-          onClick={() => setDemoText("")}
-          className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md"
-        >
-          {t("Clear")}
-        </button>
-      </div>
-
-      {/* Connection status */}
+      {/* ESPnet vs Standard Comparison */}
       <div
-        className={`mt-4 text-sm ${
-          isOnline ? "text-green-600" : "text-red-600"
+        className={`p-3 rounded-lg ${
+          preferences.highContrast ? "bg-gray-800" : "bg-gray-100"
         }`}
       >
-        {isOnline ? t("Online Mode") : t("Offline Mode - Using cached voices")}
+        <h3 className="font-medium mb-2">Compare Speech Quality</h3>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => compareWith(true)}
+            disabled={isComparing || isProcessing}
+            className={`px-3 py-1 text-sm rounded-md ${
+              isComparing || isProcessing
+                ? "bg-gray-400 cursor-not-allowed"
+                : preferences.highContrast
+                ? "bg-indigo-700 hover:bg-indigo-800"
+                : "bg-indigo-100 text-indigo-800 hover:bg-indigo-200"
+            }`}
+          >
+            ESPnet + G2P
+          </button>
+          <button
+            onClick={() => compareWith(false)}
+            disabled={isComparing || isProcessing}
+            className={`px-3 py-1 text-sm rounded-md ${
+              isComparing || isProcessing
+                ? "bg-gray-400 cursor-not-allowed"
+                : preferences.highContrast
+                ? "bg-purple-700 hover:bg-purple-800"
+                : "bg-purple-100 text-purple-800 hover:bg-purple-200"
+            }`}
+          >
+            Standard TTS
+          </button>
+        </div>
       </div>
+
+      {/* Quality Rating */}
+      {selectedPhrase && !isProcessing && !isComparing && (
+        <div
+          className={`p-3 rounded-lg ${
+            preferences.highContrast ? "bg-gray-800" : "bg-gray-100"
+          }`}
+        >
+          <h3 className="font-medium mb-2">Rate Speech Quality</h3>
+          <div className="flex items-center gap-1">
+            {[1, 2, 3, 4, 5].map((rating) => (
+              <button
+                key={rating}
+                onClick={() => handleRateQuality(rating)}
+                className={`p-1 rounded ${
+                  qualityRating === rating
+                    ? preferences.highContrast
+                      ? "text-yellow-400"
+                      : "text-yellow-500"
+                    : preferences.highContrast
+                    ? "text-gray-600 hover:text-gray-400"
+                    : "text-gray-400 hover:text-gray-600"
+                }`}
+                aria-label={`Rate ${rating} star${rating !== 1 ? "s" : ""}`}
+              >
+                <Star
+                  size={20}
+                  fill={
+                    qualityRating !== null && rating <= qualityRating
+                      ? "currentColor"
+                      : "none"
+                  }
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Feedback message */}
+      {feedback && (
+        <div
+          className={`p-3 rounded-lg ${
+            feedback.type === "success"
+              ? preferences.highContrast
+                ? "bg-green-900 text-green-100"
+                : "bg-green-100 text-green-800"
+              : feedback.type === "error"
+              ? preferences.highContrast
+                ? "bg-red-900 text-red-100"
+                : "bg-red-100 text-red-800"
+              : preferences.highContrast
+              ? "bg-blue-900 text-blue-100"
+              : "bg-blue-100 text-blue-800"
+          }`}
+        >
+          {feedback.text}
+        </div>
+      )}
     </div>
   );
 };

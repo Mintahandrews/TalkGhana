@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Offline - TalkGhana</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background-color: #f9fafb;
+        color: #1f2937;
+      }
+      .container {
+        max-width: 500px;
+        padding: 2rem;
+        text-align: center;
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+      .logo {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .logo-icon {
+        width: 40px;
+        height: 40px;
+        background-color: #3b82f6;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 0.5rem;
+      }
+      h1 {
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+      }
+      p {
+        margin-bottom: 1.5rem;
+        line-height: 1.5;
+        color: #4b5563;
+      }
+      .features {
+        text-align: left;
+        margin-bottom: 1.5rem;
+      }
+      .feature {
+        display: flex;
+        margin-bottom: 0.75rem;
+      }
+      .feature-icon {
+        margin-right: 0.75rem;
+        color: #3b82f6;
+      }
+      .buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+      }
+      .button {
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background-color 0.2s;
+      }
+      .primary {
+        background-color: #3b82f6;
+        color: white;
+        border: none;
+      }
+      .primary:hover {
+        background-color: #2563eb;
+      }
+      .secondary {
+        background-color: #e5e7eb;
+        color: #1f2937;
+        border: none;
+      }
+      .secondary:hover {
+        background-color: #d1d5db;
+      }
+      .network-status {
+        margin-top: 1.5rem;
+        font-size: 0.875rem;
+        color: #6b7280;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="white"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+            ></path>
+          </svg>
+        </div>
+        TalkGhana
+      </div>
+
+      <h1>You're currently offline</h1>
+      <p>
+        Don't worry! TalkGhana works offline. You can still use many features
+        without an internet connection.
+      </p>
+
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 2v8"></path>
+              <path d="M4.93 10.93l1.41 1.41"></path>
+              <path d="M2 18h2"></path>
+              <path d="M20 18h2"></path>
+              <path d="M19.07 10.93l-1.41 1.41"></path>
+              <path d="M22 22H2"></path>
+              <path d="M8 22v-4h8v4"></path>
+              <path d="M17.4 10c.33 1.46-.36 2.93-1.69 3.6" opacity=".4"></path>
+              <path d="M12.58 12.58A3 3 0 0 1 8.4 10" opacity=".4"></path>
+            </svg>
+          </div>
+          <div>Access saved voice commands</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M11.09 11.09a2 2 0 1 0 2.82 2.82M14.5 9.5l4-4M3 21l4.5-4.5"
+              ></path>
+              <path
+                d="M5.5 9.5C7 11 8 11 9.5 9.5l5-5c1.5-1.5 1.5-2.5 0-4s-2.5-1.5-4 0l-5 5z"
+              ></path>
+              <path
+                d="M9.54 15.5c3.1 1.6 6.76.11 9.65-2.89 1.5-1.5 1.5-2.5 0-4l-5 5"
+              ></path>
+            </svg>
+          </div>
+          <div>Play previously cached audio</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+              <line x1="9" y1="9" x2="9.01" y2="9"></line>
+              <line x1="15" y1="9" x2="15.01" y2="9"></line>
+            </svg>
+          </div>
+          <div>Record new voice notes for later</div>
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button class="button primary" onclick="tryReconnect()">
+          Check Connection
+        </button>
+        <a href="/" class="button secondary">Try Again</a>
+      </div>
+
+      <div class="network-status" id="network-status">
+        Waiting for network...
+      </div>
+    </div>
+
+    <script>
+      // Check network status periodically
+      function checkConnection() {
+        var statusElement = document.getElementById("network-status");
+
+        if (navigator.onLine) {
+          statusElement.textContent = "Connected! Refreshing...";
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } else {
+          statusElement.textContent = "Still offline. Will keep checking...";
+        }
+      }
+
+      function tryReconnect() {
+        var statusElement = document.getElementById("network-status");
+        statusElement.textContent = "Checking connection...";
+
+        setTimeout(() => {
+          checkConnection();
+        }, 500);
+      }
+
+      // Listen for online event
+      window.addEventListener("online", function () {
+        checkConnection();
+      });
+
+      // Initial check
+      window.addEventListener("load", function () {
+        if (navigator.onLine) {
+          window.location.href = "/";
+        }
+      });
+    </script>
+  </body>
+</html>

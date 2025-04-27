@@ -1,0 +1,158 @@
+/**
+ * TalkGhana Language-Specific Styling
+ * 
+ * This file defines CSS variables and styles for language-specific presentation
+ * across the application, ensuring consistent text rendering for each supported language.
+ */
+
+/* Define base CSS custom properties for language settings */
+:root {
+  /* Default settings */
+  --font-ghanaian: "Noto Sans", system-ui, sans-serif;
+  --font-size-base: 1rem;
+  --line-height-base: 1.5;
+  --letter-spacing-base: normal;
+  --word-spacing-base: normal;
+
+  /* Font sizes for different languages */
+  --font-size-multiplier: 1;
+  --line-height-multiplier: 1;
+
+  /* Language-specific text directions */
+  --text-direction: ltr;
+}
+
+/* Apply language-specific font settings */
+.lang-english,
+[lang="en"],
+[data-lang="en"] {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  --font-size-multiplier: 1;
+  --line-height-multiplier: 1;
+}
+
+.lang-twi,
+[lang="twi"],
+[data-lang="twi"] {
+  font-family: var(--font-ghanaian);
+  --font-size-multiplier: 1.05;
+  --line-height-multiplier: 1.1;
+  --letter-spacing-base: 0.01em;
+}
+
+.lang-ga,
+[lang="ga"],
+[data-lang="ga"] {
+  font-family: var(--font-ghanaian);
+  --font-size-multiplier: 1.05;
+  --line-height-multiplier: 1.15;
+  --word-spacing-base: 0.05em;
+}
+
+.lang-ewe,
+[lang="ewe"],
+[data-lang="ewe"] {
+  font-family: var(--font-ghanaian);
+  --font-size-multiplier: 1.05;
+  --line-height-multiplier: 1.15;
+}
+
+.lang-hausa,
+[lang="hausa"],
+[data-lang="hausa"] {
+  font-family: var(--font-ghanaian);
+  --font-size-multiplier: 1.05;
+  --line-height-multiplier: 1.15;
+}
+
+.lang-dagbani,
+[lang="dagbani"],
+[data-lang="dagbani"] {
+  font-family: var(--font-ghanaian);
+  --font-size-multiplier: 1.05;
+  --line-height-multiplier: 1.15;
+}
+
+/* Apply language-specific settings to elements */
+body {
+  font-size: calc(var(--font-size-base) * var(--font-size-multiplier));
+  line-height: calc(var(--line-height-base) * var(--line-height-multiplier));
+  letter-spacing: var(--letter-spacing-base);
+  word-spacing: var(--word-spacing-base);
+  direction: var(--text-direction);
+}
+
+/* Language-specific tweaks for input placeholder text */
+::placeholder {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.lang-twi ::placeholder,
+.lang-ga ::placeholder,
+.lang-ewe ::placeholder,
+.lang-hausa ::placeholder,
+.lang-dagbani ::placeholder {
+  font-size: 0.95em;
+}
+
+/* Specific adjustments for headers */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  letter-spacing: calc(var(--letter-spacing-base) * 0.8);
+}
+
+/* Handle differences in character width and adjust buttons and form elements */
+.lang-twi button,
+.lang-ga button,
+.lang-ewe button,
+.lang-hausa button,
+.lang-dagbani button {
+  padding-left: calc(0.75rem * var(--font-size-multiplier));
+  padding-right: calc(0.75rem * var(--font-size-multiplier));
+}
+
+/* Responsive adjustments for different viewports */
+@media (max-width: 768px) {
+  :root {
+    --font-size-base: 0.95rem;
+  }
+}
+
+/* High contrast mode language-specific adjustments */
+.high-contrast.lang-twi,
+.high-contrast.lang-ga,
+.high-contrast.lang-ewe,
+.high-contrast.lang-hausa,
+.high-contrast.lang-dagbani {
+  --letter-spacing-base: 0.02em;
+  --word-spacing-base: 0.08em;
+}
+
+/* Large text mode language-specific adjustments */
+.large-text.lang-twi,
+.large-text.lang-ga,
+.large-text.lang-ewe,
+.large-text.lang-hausa,
+.large-text.lang-dagbani {
+  --font-size-multiplier: 1.25;
+}
+
+/* Animations and transitions for language changes */
+.app-content {
+  transition: font-size 0.3s ease, line-height 0.3s ease;
+}
+
+/* Web Components support */
+:host([lang]),
+:host([data-lang]) {
+  font-size: calc(var(--font-size-base) * var(--font-size-multiplier));
+  line-height: calc(var(--line-height-base) * var(--line-height-multiplier));
+  letter-spacing: var(--letter-spacing-base);
+  word-spacing: var(--word-spacing-base);
+}

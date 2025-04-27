@@ -1,6 +1,6 @@
 # TalkGhana Training Tools
 
-This toolkit provides comprehensive tools for training Text-to-Speech (TTS) and Speech-to-Text (STT) models for Ghanaian languages, including Twi, Ga, Ewe, Hausa, and Ghanaian English.
+This toolkit provides comprehensive tools for training Text-to-Speech (TTS) and Speech-to-Text (STT) models for Ghanaian languages, including Twi, Ga, Ewe, Dagbani, Hausa, and Ghanaian English.
 
 ## Features
 
@@ -32,12 +32,14 @@ data/
 │   │   ├── ga/
 │   │   ├── ewe/
 │   │   ├── hausa/
+│   │   ├── dagbani/
 │   │   └── english/
 │   └── processed/
 │       ├── twi/
 │       ├── ga/
 │       ├── ewe/
 │       ├── hausa/
+│       ├── dagbani/
 │       └── english/
 ├── text/
 │   ├── raw/
@@ -45,18 +47,21 @@ data/
 │   │   ├── ga/
 │   │   ├── ewe/
 │   │   ├── hausa/
+│   │   ├── dagbani/
 │   │   └── english/
 │   └── processed/
 │       ├── twi/
 │       ├── ga/
 │       ├── ewe/
 │       ├── hausa/
+│       ├── dagbani/
 │       └── english/
 ├── models/
 │   ├── twi/
 │   ├── ga/
 │   ├── ewe/
 │   ├── hausa/
+│   ├── dagbani/
 │   └── english/
 └── training_logs/
 ```
@@ -99,6 +104,13 @@ Train an STT model:
 npm run train:stt -- -l ga
 ```
 
+Training for Dagbani:
+
+```bash
+npm run train:tts -- -l dagbani
+npm run train:stt -- -l dagbani
+```
+
 ### Data Management
 
 List available data:
@@ -124,7 +136,7 @@ npm run data:import -- -l ga -a path/to/audio/directory
 ### TTS Training Options
 
 ```
--l, --language <language>     Target language (twi, ga, ewe, hausa, english)
+-l, --language <language>     Target language (twi, ga, ewe, hausa, dagbani, english)
 -m, --model <architecture>    Model architecture (fastspeech, tacotron, glowtts, vits)
 -b, --batch-size <size>       Batch size
 -e, --epochs <count>          Number of epochs
@@ -138,7 +150,7 @@ npm run data:import -- -l ga -a path/to/audio/directory
 ### STT Training Options
 
 ```
--l, --language <language>     Target language (twi, ga, ewe, hausa, english)
+-l, --language <language>     Target language (twi, ga, ewe, hausa, dagbani, english)
 -m, --model <architecture>    Model architecture (conformer, quartznet, wav2vec, whisper)
 -b, --batch-size <size>       Batch size
 -e, --epochs <count>          Number of epochs
@@ -148,3 +160,43 @@ npm run data:import -- -l ga -a path/to/audio/directory
 -o, --output <dir>           Output directory
 --export <formats>           Export formats (comma-separated: tfjs,tflite,tensorflowjs)
 ```
+
+## Language-Specific Considerations
+
+Each Ghanaian language has unique characteristics that impact training:
+
+### Twi (Akan)
+
+- Tonal language with pitch carrying semantic meaning
+- Multiple dialects (Asante, Akuapem, Fante)
+- Requires syllable-level modeling for best results
+
+### Ga
+
+- Uses tonal patterns that can change meaning
+- Includes double consonants (kp, gb) that need special handling
+- Benefits from special handling of nasalization
+
+### Ewe
+
+- Seven tones that must be preserved for intelligibility
+- Includes special characters like ɖ, ƒ, ŋ
+- Requires custom lexicon for pronunciation
+
+### Dagbani
+
+- Tonal language with two primary tones (high, low)
+- Includes syllabic nasals that require special handling
+- Benefits from tone marking for disambiguation
+
+### Hausa
+
+- Includes glottalized consonants (ɓ, ɗ)
+- Tone system simpler than other Ghanaian languages
+- Standard orthography well-established
+
+### Ghanaian English
+
+- Features unique intonation patterns distinct from other English variants
+- Often incorporates words or pronunciation patterns from local languages
+- Benefits from transfer learning from standard English models

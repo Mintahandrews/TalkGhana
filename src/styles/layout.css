@@ -1,0 +1,83 @@
+/* Layout responsive styles */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-header {
+  background-color: #1d4ed8;
+  color: white;
+  padding: var(--spacing-md);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  text-decoration: none;
+  color: white;
+}
+
+.logo h1 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.menu-toggle {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.desktop-nav {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.desktop-nav a, 
+.mobile-menu a,
+.mobile-nav a {
+  color: white;
+  text-decoration: none;
+  padding: var(--spacing-sm);
+}
+
+.desktop-nav a.active,
+.mobile-menu a.active,
+.mobile-nav a.active {
+  font-weight: bold;
+  border-bottom: 2px solid white;
+}
+
+.mobile-menu {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-md) 0;
+}
+
+.main-content {
+  flex: 1;
+  padding: var(--spacing-md);
+  padding-bottom: 70px; /* Leave space for mobile nav */
+}
+
+/* Desktop styles */
+@media (min-width: 768px) {
+  .logo h1 {
+    font-size: var(--font-size-xl);
+  }
+  
+  .main-content {
+    padding: var(--spacing-lg);
+    padding-bottom: var(--spacing-lg); /* Reset padding for desktop */
+  }
+}

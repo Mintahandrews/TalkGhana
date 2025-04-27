@@ -1,4 +1,10 @@
-import { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import {
+  createContext,
+  useState,
+  useContext,
+  ReactNode,
+  useEffect,
+} from "react";
 
 interface UserPreferences {
   highContrast: boolean;
@@ -8,6 +14,7 @@ interface UserPreferences {
   speechPitch: number;
   audioFeedback: boolean;
   keyboardNavigation: boolean;
+  ttsEnabled: boolean;
 }
 
 interface UserPreferencesContextType {
@@ -16,6 +23,7 @@ interface UserPreferencesContextType {
     key: K,
     value: UserPreferences[K]
   ) => void;
+  updatePreferences: (newPreferences: Partial<UserPreferences>) => void;
 }
 
 const defaultPreferences: UserPreferences = {
@@ -26,11 +34,13 @@ const defaultPreferences: UserPreferences = {
   speechPitch: 1.0,
   audioFeedback: true,
   keyboardNavigation: false,
+  ttsEnabled: true,
 };
 
 const UserPreferencesContext = createContext<UserPreferencesContextType>({
   preferences: defaultPreferences,
   updatePreference: () => {},
+  updatePreferences: () => {},
 });
 
 export const useUserPreferences = () => useContext(UserPreferencesContext);
@@ -42,16 +52,17 @@ interface UserPreferencesProviderProps {
 export const UserPreferencesProvider = ({
   children,
 }: UserPreferencesProviderProps) => {
-  const [preferences, setPreferences] = useState<UserPreferences>(defaultPreferences);
+  const [preferences, setPreferences] =
+    useState<UserPreferences>(defaultPreferences);
 
   useEffect(() => {
     // Load preferences from localStorage
-    const storedPreferences = localStorage.getItem('userPreferences');
+    const storedPreferences = localStorage.getItem("userPreferences");
     if (storedPreferences) {
       try {
         setPreferences(JSON.parse(storedPreferences));
       } catch (e) {
-        console.error('Failed to parse stored preferences');
+        console.error("Failed to parse stored preferences");
       }
     }
   }, []);
@@ -59,65 +70,66 @@ export const UserPreferencesProvider = ({
   useEffect(() => {
     // Apply accessibility preferences to the document
     if (preferences.highContrast) {
-      document.documentElement.classList.add('high-contrast');
+      document.documentElement.classList.add("high-contrast");
     } else {
-      document.documentElement.classList.remove('high-contrast');
+      document.documentElement.classList.remove("high-contrast");
     }
 
     if (preferences.largeText) {
-      document.documentElement.classList.add('large-text');
+      document.documentElement.classList.add("large-text");
     } else {
-      document.documentElement.classList.remove('large-text');
+      document.documentElement.classList.remove("large-text");
     }
-    
+
     if (preferences.keyboardNavigation) {
-      document.documentElement.classList.add('keyboard-nav');
+      document.documentElement.classList.add("keyboard-nav");
     } else {
-      document.documentElement.classList.remove('keyboard-nav');
+      document.documentElement.classList.remove("keyboard-nav");
     }
-    
+
     // Handle audio feedback
     if (preferences.audioFeedback) {
       const setupAudioFeedback = () => {
         // Add event listeners for buttons to play subtle click sounds
-        const buttons = document.querySelectorAll('button');
-        buttons.forEach(button => {
-          button.addEventListener('click', playFeedbackSound);
+        const buttons = document.querySelectorAll("button");
+        buttons.forEach((button) => {
+          button.addEventListener("click", playFeedbackSound);
         });
       };
-      
+
       // Simple audio feedback implementation
       const playFeedbackSound = () => {
         try {
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const audioContext = new (window.AudioContext ||
+            (window as any).webkitAudioContext)();
           const oscillator = audioContext.createOscillator();
           const gainNode = audioContext.createGain();
-          
-          oscillator.type = 'sine';
+
+          oscillator.type = "sine";
           oscillator.frequency.value = 800;
           gainNode.gain.value = 0.1;
-          
+
           oscillator.connect(gainNode);
           gainNode.connect(audioContext.destination);
-          
+
           oscillator.start();
-          
+
           // Short duration
           setTimeout(() => {
             oscillator.stop();
             audioContext.close();
           }, 50);
         } catch (e) {
-          console.error('Audio feedback error:', e);
+          console.error("Audio feedback error:", e);
         }
       };
-      
+
       // Set up listeners when the DOM is fully loaded
-      if (document.readyState === 'complete') {
+      if (document.readyState === "complete") {
         setupAudioFeedback();
       } else {
-        window.addEventListener('load', setupAudioFeedback);
-        return () => window.removeEventListener('load', setupAudioFeedback);
+        window.addEventListener("load", setupAudioFeedback);
+        return () => window.removeEventListener("load", setupAudioFeedback);
       }
     }
   }, [preferences]);
@@ -129,11 +141,22 @@ export const UserPreferencesProvider = ({
     const newPreferences = { ...preferences, [key]: value };
     setPreferences(newPreferences);
     // Save to localStorage
-    localStorage.setItem('userPreferences', JSON.stringify(newPreferences));
+    localStorage.setItem("userPreferences", JSON.stringify(newPreferences));
+  };
+
+  const updatePreferences = (
+    newPartialPreferences: Partial<UserPreferences>
+  ) => {
+    const newPreferences = { ...preferences, ...newPartialPreferences };
+    setPreferences(newPreferences);
+    // Save to localStorage
+    localStorage.setItem("userPreferences", JSON.stringify(newPreferences));
   };
 
   return (
-    <UserPreferencesContext.Provider value={{ preferences, updatePreference }}>
+    <UserPreferencesContext.Provider
+      value={{ preferences, updatePreference, updatePreferences }}
+    >
       {children}
     </UserPreferencesContext.Provider>
   );

@@ -16,6 +16,7 @@ The hackathon challenged teams to design and develop innovative applications usi
 - **Language Support**: Support for Twi, Ga, Ewe, Dagbani, Hausa, and English
 - **Offline Support**: Use core features even when offline
 - **Accessibility**: Designed with accessibility as a priority
+- **Custom Web Components**: Localized text elements that work outside React
 
 ## WhatsApp Integration
 
@@ -47,18 +48,20 @@ Each language includes:
 ## Technologies Used
 
 - React.js with TypeScript
+- Vite for fast builds and development
 - Tailwind CSS for UI styling
 - Hugging Face's Whisper for ASR (Automatic Speech Recognition)
 - Web Speech API for TTS (Text-to-Speech)
 - Service Workers for offline capability
 - IndexedDB for local storage
 - Progressive Web App (PWA) features
+- i18next for internationalization
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v18 or higher)
 - npm or yarn
 
 ### Installation
@@ -66,8 +69,8 @@ Each language includes:
 1. Clone the repository:
 
    ```
-   git clone https://github.com/yourusername/talkghana.git
-   cd talkghana
+   git clone https://github.com/Mintahandrews/TalkGhana.git
+   cd TalkGhana
    ```
 
 2. Install dependencies:
@@ -76,21 +79,31 @@ Each language includes:
    npm install
    ```
 
-3. Create a .env file with your WhatsApp API credentials:
-
-   ```
-   WHATSAPP_API_VERSION=v17.0
-   WHATSAPP_ACCESS_TOKEN=your_access_token_here
-   WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id_here
-   WHATSAPP_VERIFY_TOKEN=talkghana-verify-token
-   PORT=5000
-   ```
-
-4. Start the development server:
+3. Start the development server:
 
    ```
    npm run dev
    ```
+
+4. For production build:
+
+   ```
+   npm run build
+   ```
+
+### Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```
+NODE_ENV=development
+VITE_API_URL=http://localhost:3000
+# Hugging Face API
+VITE_HUGGINGFACE_API_KEY=your_huggingface_api_key_here
+# WhatsApp Integration (Optional)
+VITE_WHATSAPP_ENABLED=false
+VITE_WHATSAPP_NUMBER=
+```
 
 ### Testing WhatsApp Connection
 
@@ -113,21 +126,26 @@ npm run test:whatsapp
 ```
 src/
 ├── components/     # Reusable UI components
+│   ├── ui/         # Base UI components
+│   ├── web/        # Web components for use outside React
 ├── contexts/       # React context providers
 ├── hooks/          # Custom React hooks
+├── i18n/           # Internationalization
+│   ├── locales/    # Translation files
 ├── pages/          # Application pages
 ├── services/       # API and utility services
 ├── types/          # TypeScript type definitions
 └── utils/          # Helper functions
 ```
 
-## Documentation
+## Deployment
 
-For more detailed information, please refer to:
+TalkGhana can be deployed to Vercel with the following settings:
 
-- [Installation Guide](./README-INSTALLATION.md)
-- [ESPnet Integration](./README-ESPNET.md)
-- [Ghanaian Language Training](./README-GHANAIAN-TRAINING.md)
+1. Connect your GitHub repository
+2. Set the build command to `npm run build`
+3. Set the output directory to `dist`
+4. Add any environment variables needed
 
 ## Contributing
 
@@ -148,6 +166,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Hugging Face](https://huggingface.co/) for Whisper ASR integration
 - [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) for speech recognition and synthesis
 - [Tailwind CSS](https://tailwindcss.com/) for UI components
+- [i18next](https://www.i18next.com/) for internationalization
 - All contributors who have helped with Ghanaian language support and cultural context
 
 ## Contact

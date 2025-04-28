@@ -6,6 +6,7 @@ export interface TextProps {
   fallback: string;
   className?: string;
   htmlFor?: string;
+  values?: Record<string, any>;
   children?: React.ReactNode;
 }
 
@@ -14,10 +15,11 @@ export const Text: React.FC<TextProps> = ({
   fallback,
   className = "",
   htmlFor,
+  values,
   children,
 }) => {
   const { t } = useTranslation();
-  const content = t(id, { fallback });
+  const content = t(id, { fallback, ...values });
 
   if (htmlFor) {
     return (

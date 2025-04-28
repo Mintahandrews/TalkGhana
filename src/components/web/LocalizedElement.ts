@@ -5,7 +5,7 @@
  * and other custom elements outside of the React component tree.
  */
 
-import i18n from "../../locales/i18n";
+import i18n from "../../i18n";
 
 /**
  * Custom element for localized text that automatically updates when the language changes

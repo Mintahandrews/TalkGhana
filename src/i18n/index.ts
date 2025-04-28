@@ -222,7 +222,9 @@ i18n.on("languageChanged", (lng) => {
 
 // Utility function to translate text for web components and non-React elements
 export const translateText = (key: string, options?: any): string => {
-  return i18n.t(key, options);
+  const translated = i18n.t(key, options);
+  // Ensure we return a string type
+  return typeof translated === "string" ? translated : String(translated);
 };
 
 // Register global translation function for Web Components

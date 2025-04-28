@@ -2,6 +2,7 @@
   "name": "talkghana",
   "version": "1.0.0",
   "description": "An assistive communication app for speech-impaired individuals in Ghana",
+  "type": "module",
   "main": "src/index.tsx",
   "scripts": {
     "start": "vite",
@@ -13,7 +14,9 @@
     "dev:vite": "vite",
     "dev:server": "node server/index.js",
     "download-dataset": "ts-node src/scripts/download_dataset.ts",
-    "train-models": "ts-node src/scripts/train_ghanaian_models.ts"
+    "train-models": "ts-node src/scripts/train_ghanaian_models.ts",
+    "postinstall": "node scripts/postinstall.js",
+    "verify": "node scripts/verify-setup.js"
   },
   "dependencies": {
     "@types/react-speech-recognition": "^3.9.6",
@@ -24,6 +27,7 @@
     "express": "^4.18.2",
     "i18next": "^25.0.1",
     "i18next-browser-languagedetector": "^8.0.5",
+    "i18next-http-backend": "^3.0.2",
     "idb": "^7.1.1",
     "lucide-react": "^0.503.0",
     "onnxruntime-web": "^1.17.0",
@@ -58,5 +62,27 @@
     "tailwindcss": "^3.3.5",
     "typescript": "^5.2.2",
     "vite": "^5.0.0"
-  }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not op_mini all"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mintahandrews/TalkGhana"
+  },
+  "keywords": [
+    "assistive-technology",
+    "speech-recognition",
+    "text-to-speech",
+    "accessibility",
+    "ghana",
+    "african-languages"
+  ],
+  "author": "Mintah Andrews",
+  "license": "MIT"
 }

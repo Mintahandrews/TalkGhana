@@ -16,7 +16,8 @@ import { GhanaianLanguage } from "../services/LanguageService";
 import { useUserPreferences } from "../context/UserPreferencesContext";
 import { useTextToSpeech } from "../services/TextToSpeechService";
 import ServiceWorkerStatus from "../components/ServiceWorkerStatus";
-import Text, { Heading, Paragraph, Label } from "../components/Text";
+import Text from "../components/ui/text";
+import Label from "../components/ui/Label";
 
 const Settings = () => {
   const { currentLanguage, setLanguage, t } = useLanguage();
@@ -150,6 +151,7 @@ const Settings = () => {
           <div className="mb-4">
             <Label
               className="block text-sm font-medium mb-2"
+              htmlFor="language-selector"
               id="currentLanguage"
               fallback="Current Language"
             />

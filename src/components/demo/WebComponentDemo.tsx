@@ -9,7 +9,7 @@ import { GhanaianLanguage } from "../../types";
  * the language changes.
  */
 export const WebComponentDemo: React.FC = () => {
-  const { language, setLanguage } = useLanguage();
+  const { currentLanguage, setCurrentLanguage } = useLanguage();
   const [registered, setRegistered] = useState(false);
 
   // Register web components when the component mounts
@@ -20,7 +20,7 @@ export const WebComponentDemo: React.FC = () => {
 
   // Handle language change
   const handleLanguageChange = (newLang: GhanaianLanguage) => {
-    setLanguage(newLang);
+    setCurrentLanguage(newLang);
   };
 
   if (!registered) {
@@ -38,7 +38,7 @@ export const WebComponentDemo: React.FC = () => {
         <label htmlFor="language-select">Select Language: </label>
         <select
           id="language-select"
-          value={language}
+          value={currentLanguage}
           onChange={(e) =>
             handleLanguageChange(e.target.value as GhanaianLanguage)
           }

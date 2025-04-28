@@ -1,3 +1,7 @@
+/**
+ * Common type definitions for TalkGhana
+ */
+
 export type GhanaianLanguage =
   | "twi"
   | "ga"
@@ -46,4 +50,13 @@ export interface ModelDownloadProgress {
   progress: number; // 0-100
   status: "pending" | "downloading" | "completed" | "failed";
   error?: string;
+}
+
+export interface LanguageResource {
+  code: GhanaianLanguage;
+  name: string;
+  localName: string;
+  voiceAvailable: boolean;
+  offlineSupport: boolean;
+  whisperModel: string;
 }

@@ -109,7 +109,7 @@ i18n
   });
 
 // Apply language attributes to all HTML elements with lang attribute
-const applyLanguageToElements = (lng: string) => {
+export const applyLanguageToElements = (lng: string) => {
   // Update all elements with lang attribute
   document.querySelectorAll("[lang]").forEach((el) => {
     if (el instanceof HTMLElement) {
@@ -136,7 +136,7 @@ const applyLanguageToElements = (lng: string) => {
 };
 
 // Apply language-specific CSS classes
-const applyLanguageStyles = (lng: string) => {
+export const applyLanguageStyles = (lng: string) => {
   const ghanaianLang = getGhanaianLanguage(lng);
 
   // Add language-specific class to body for global styling

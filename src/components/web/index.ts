@@ -5,6 +5,9 @@
  * Both components are automatically registered when imported.
  */
 
+import { LocalizedElement } from "./LocalizedElement";
+import { ThemeToggle } from "./ThemeToggle";
+
 export { LocalizedElement } from "./LocalizedElement";
 export { ThemeToggle } from "./ThemeToggle";
 

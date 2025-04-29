@@ -16,7 +16,9 @@
     "download-dataset": "ts-node src/scripts/download_dataset.ts",
     "train-models": "ts-node src/scripts/train_ghanaian_models.ts",
     "postinstall": "node scripts/postinstall.js",
-    "verify": "node scripts/verify-setup.js"
+    "verify": "node scripts/verify-setup.js",
+    "fix": "node fix-build-errors.cjs",
+    "vercel-build": "./vercel-build.sh"
   },
   "dependencies": {
     "@types/react-speech-recognition": "^3.9.6",

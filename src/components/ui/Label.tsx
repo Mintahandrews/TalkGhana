@@ -1,5 +1,5 @@
-import React from "react";
-import { useTranslation } from "react-i18next";
+import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface LabelProps {
   id: string;
@@ -12,7 +12,7 @@ export interface LabelProps {
 export const Label: React.FC<LabelProps> = ({
   id,
   fallback,
-  className = "",
+  className = '',
   htmlFor,
   children,
 }) => {

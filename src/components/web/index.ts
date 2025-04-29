@@ -16,12 +16,12 @@ export { ThemeToggle } from "./ThemeToggle";
  */
 export const registerWebComponents = (): void => {
   // Register custom elements if not already defined
-  if (!customElements.get("localized-text")) {
-    customElements.define("localized-text", LocalizedElement);
+  if (!customElements.get('localized-text')) {
+    customElements.define('localized-text', LocalizedElement);
   }
-
-  if (!customElements.get("theme-toggle")) {
-    customElements.define("theme-toggle", ThemeToggle);
+  
+  if (!customElements.get('theme-toggle')) {
+    customElements.define('theme-toggle', ThemeToggle);
   }
 };
 
@@ -29,5 +29,5 @@ export const registerWebComponents = (): void => {
 export default {
   LocalizedElement,
   ThemeToggle,
-  registerWebComponents,
+  registerWebComponents
 };

@@ -1,5 +1,5 @@
-import React from "react";
-import { useTranslation } from "react-i18next";
+import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface TextProps {
   id: string;
@@ -13,7 +13,7 @@ export interface TextProps {
 export const Text: React.FC<TextProps> = ({
   id,
   fallback,
-  className = "",
+  className = '',
   htmlFor,
   values,
   children,

@@ -3,19 +3,19 @@
  * This file adds type definitions for our custom web components
  */
 
-import React from "react";
+import React from 'react';
 
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      "localized-text": React.DetailedHTMLProps<
+      'localized-text': React.DetailedHTMLProps<
         React.HTMLAttributes<HTMLElement> & {
-          "data-i18n"?: string;
-          "data-format"?: "uppercase" | "lowercase" | "capitalize";
+          'data-i18n'?: string;
+          'data-format'?: 'uppercase' | 'lowercase' | 'capitalize';
         },
         HTMLElement
       >;
-      "theme-toggle": React.DetailedHTMLProps<
+      'theme-toggle': React.DetailedHTMLProps<
         React.HTMLAttributes<HTMLElement>,
         HTMLElement
       >;

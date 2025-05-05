@@ -172,6 +172,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Contact
 
 If you have any questions or suggestions, please contact us at support@talkghana.org.
+Or reach out to us on Dennis Asiedu [Email](asiedudennis30@gmail.com) and Andrews Mintah [Email](mintahandrews1965@gmail.com)
 
 ---
 
